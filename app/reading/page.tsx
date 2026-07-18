@@ -25,15 +25,13 @@ export default function ReadingFlowPage() {
   const [shuffledIds, setShuffledIds] = useState<number[]>([]);
   const [isShufflingAnimating, setIsShufflingAnimating] = useState(false);
   const [readingResult, setReadingResult] = useState<ReadingResult | null>(null);
+  const [readingSource, setReadingSource] = useState<"live" | "local" | null>(null);
+  const [usedModel, setUsedModel] = useState<string | null>(null);
 
   // Transition: Question -> Shuffling
   const handleQuestionSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    setFlowState("shuffling");
-  };
-
-  const handleSkipQuestion = () => {
-    setQuestion("");
+    if (!question.trim()) return;
     setFlowState("shuffling");
   };
 
@@ -96,6 +94,8 @@ export default function ReadingFlowPage() {
             if (data && data.success && isMounted) {
               console.log("Successfully generated online reading from Gemini API!");
               setReadingResult(data.reading);
+              setReadingSource("live");
+              setUsedModel(data.modelUsed || "openrouter/auto");
               setFlowState("result");
               return;
             } else {
@@ -113,6 +113,8 @@ export default function ReadingFlowPage() {
           console.log("Falling back to local/offline reading generation...");
           const result = generateReading(question, selectedIds);
           setReadingResult(result);
+          setReadingSource("local");
+          setUsedModel(null);
           
           // Show the nice transition screen for at least 2 seconds
           setTimeout(() => {
@@ -134,6 +136,8 @@ export default function ReadingFlowPage() {
     setSelectedIds([]);
     setShuffledIds([]);
     setReadingResult(null);
+    setReadingSource(null);
+    setUsedModel(null);
     setFlowState("question");
   };
 
@@ -223,6 +227,14 @@ export default function ReadingFlowPage() {
                 <textarea
                   value={question}
                   onChange={(e) => setQuestion(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && e.shiftKey) {
+                      e.preventDefault();
+                      if (question.trim()) {
+                        handleQuestionSubmit();
+                      }
+                    }
+                  }}
                   rows={4}
                   placeholder="Example: I have important decisions to make about my life and I need clarity..."
                   className="w-full px-6 py-5 bg-neutral-900/40 hover:bg-neutral-900/60 focus:bg-neutral-900/80 rounded-xl border border-neutral-800 focus:border-gold-500/50 focus:ring-0 focus:outline-none text-neutral-200 text-sm font-light leading-relaxed placeholder-neutral-600 transition-all duration-300 resize-none"
@@ -244,14 +256,6 @@ export default function ReadingFlowPage() {
                 >
                   Continue with Question
                   <ArrowRight className="w-4 h-4" />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleSkipQuestion}
-                  className="w-full sm:w-auto px-8 py-3.5 bg-transparent hover:bg-neutral-900 text-neutral-400 hover:text-neutral-200 rounded-full text-xs uppercase tracking-widest font-medium transition-all duration-300 text-center"
-                >
-                  Continue without a question
                 </button>
               </div>
             </form>
@@ -398,6 +402,24 @@ export default function ReadingFlowPage() {
               <h1 className="text-4xl sm:text-5xl font-serif text-neutral-100 font-light">
                 {readingResult.question ? "Your Guided Reading" : "The Silent Panorama Assembly"}
               </h1>
+              
+              {/* Reading Source Badge */}
+              {readingSource && (
+                <div className="flex justify-center mt-2">
+                  {readingSource === "live" ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[9px] font-mono font-semibold uppercase tracking-wider text-emerald-400 bg-emerald-950/30 border border-emerald-500/20 rounded-full shadow-[0_0_15px_rgba(16,185,129,0.05)]">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      AI Live Reading ({usedModel})
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[9px] font-mono font-semibold uppercase tracking-wider text-amber-500 bg-amber-950/30 border border-amber-500/20 rounded-full shadow-[0_0_15px_rgba(245,158,11,0.05)]">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                      Local Fallback Reading (API offline/rate-limited)
+                    </span>
+                  )}
+                </div>
+              )}
+
               {readingResult.question ? (
                 <div className="inline-flex items-center gap-3 px-6 py-3 bg-neutral-900/40 rounded-xl border border-neutral-900/60 max-w-2xl text-left mt-2 mx-auto">
                   <MessageSquare className="w-4 h-4 text-gold-500 flex-shrink-0" />

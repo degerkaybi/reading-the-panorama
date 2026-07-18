@@ -60,20 +60,7 @@ export async function POST(req: NextRequest) {
     // Build tableau descriptions for the prompt (text-based, since Gemma 4 doesn't support vision)
     const describeTableau = (tableau: any, id: number) => {
       return `Tableau #${id}:
-- Title: ${tableau.title}
-- Image URL: ${tableau.imageUrl}
-- Core Verb: ${tableau.coreVerb}
-- Core Essence: ${tableau.coreEssence}
-- Central Tension: ${tableau.centralTension}
-- Transformation: from "${tableau.transformation.from}" to "${tableau.transformation.to}"
-- Primary Archetypes: ${tableau.primaryArchetypes.join(", ")}
-- Symbols: ${tableau.symbols.join(", ")}
-- Light Expression: ${tableau.lightExpression}
-- Shadow Expression: ${tableau.shadowExpression}
-- Invitation: ${tableau.invitation}
-- Warning: ${tableau.warning}
-- Tarot Resonances: ${tableau.tarotResonances.join(", ")}
-- Original Prompt (visual description): ${tableau.originalPrompt}`;
+- Image URL: ${tableau.imageUrl}`;
     };
 
     let prompt = "";
@@ -88,55 +75,55 @@ export async function POST(req: NextRequest) {
 
       prompt = `
 You are the interpretive guide for "Reading the Panorama".
-"Reading the Panorama" is a symbolic reading experience. Users select a single hidden artwork from the "Panorama" collection representing their focus.
-
-The central philosophy is:
-"Tarot does not give meaning to the Panorama. Tarot is an interpretive language that helps reveal meanings already present within the Panorama."
+"Reading the Panorama" is a symbolic, deeply personalized reading experience. Users select a single hidden card from the "Panorama" deck representing their focus.
 
 User Query: "${cleanQuestion || "Silent Inquiry (no question asked)"}"
 
-Selected Tableau:
+Selected Card:
 ${tableauDesc}
 
-Based on the visual description and symbolic metadata of this tableau, generate a deep, personalized reading.
+CRITICAL REQUIREMENT (100% DYNAMIC GENERATION):
+You must INVENT a completely custom, unique card for the Panorama deck corresponding to this Day ID #${selectedIds[0]}. DO NOT use or copy any predefined templates.
+The "Reading the Panorama" deck is a collection of 90 panoramic scenes (watercolor sketches or digital paintings) representing different stages of a psychological and spiritual journey. The scenes feature quiet landscapes, lonely figures, ancient structures, scientific instruments (like telescopes), natural elements (fog, storm, stars), and surreal environments (sunken library, sky scaffold).
+Using the Card ID #${selectedIds[0]} and the User Query, creatively conceive a unique visual scene and its symbolic metadata.
 
 Generate a JSON response conforming strictly to this structure:
 {
   "cards": {
     "Single": {
-      "title": "A poetic, evocative title in English for this card based on the image (e.g. 'The Threshold of Winds')",
-      "coreVerb": "A single action verb or gerund in English (e.g. 'Crossing', 'Witnessing')",
-      "coreEssence": "A single, deep sentence in English describing the core essence of this card",
-      "centralTension": "An English sentence describing the central tension or dilemma shown in the scene (e.g. 'The safety of the threshold vs. the unpredictable calling of the storm')",
+      "title": "A poetic, evocative title in English (or Turkish if query is Turkish) that you invent for this Day's card",
+      "coreVerb": "A single action verb or gerund in English (or Turkish if query is Turkish)",
+      "coreEssence": "A single, deep sentence describing the core essence of this card",
+      "centralTension": "A sentence describing the central tension or dilemma shown in your invented scene",
       "transformation": {
-        "from": "An English phrase describing the state/feeling being left behind",
-        "to": "An English phrase describing the state/feeling being moved towards"
+        "from": "A phrase describing the state/feeling being left behind",
+        "to": "A phrase describing the state/feeling being moved towards"
       },
-      "primaryArchetypes": ["Archetype 1 in English", "Archetype 2 in English"],
-      "symbols": ["Symbol 1 in English", "Symbol 2 in English", "Symbol 3 in English"],
-      "lightExpression": "An English sentence describing the positive, constructive aspect of this card",
-      "shadowExpression": "An English sentence describing the shadow, warning, or self-sabotaging aspect",
-      "tarotResonances": ["Resonance 1 in English", "Resonance 2 in English"],
-      "visualObservations": ["Visual detail observation 1 in English", "Visual detail observation 2 in English"],
-      "promptObservations": ["An observation about the prompt or concept in English"],
-      "originalPrompt": "A detailed descriptive prompt in English describing what is visually happening in the image",
-      "invitation": "The card's specific invitation in English (e.g. 'Step through the portal. The wind is not trying to knock you down; it is indicating which way is open.')",
-      "warning": "The card's specific warning in English (e.g. 'Remaining on the threshold forever turns a gate into a wall.')",
-      "positionalInterpretation": "A clear, plain 1-2 sentence description in English of how this card represents the focal point of the query.",
-      "contextualInterpretation": "A direct, clear 2-3 sentence interpretation in English of the card's visual symbols and its essence in relation to the query: ${cleanQuestion || "their situation"}."
+      "primaryArchetypes": ["Archetype 1", "Archetype 2"],
+      "symbols": ["Symbol 1", "Symbol 2", "Symbol 3"],
+      "lightExpression": "A sentence describing the positive, constructive aspect of this card",
+      "shadowExpression": "A sentence describing the shadow, warning, or self-sabotaging aspect",
+      "tarotResonances": ["Resonance 1", "Resonance 2"],
+      "visualObservations": ["Visual detail observation 1", "Visual detail observation 2"],
+      "promptObservations": ["An observation about the prompt or concept"],
+      "originalPrompt": "A detailed descriptive prompt that you invent, describing what is visually happening in the panoramic image (watercolor/digital painting style)",
+      "invitation": "The card's specific invitation",
+      "warning": "The card's specific warning",
+      "positionalInterpretation": "A clear, plain 1-2 sentence description of how this card represents the focal point of the query.",
+      "contextualInterpretation": "A direct, clear 2-3 sentence interpretation of the card's visual symbols and its essence in relation to the query: ${cleanQuestion || "their situation"}."
     }
   },
-  "synthesis": "A simple, poetic, yet very clear and plain 2-3 sentence summary in English of the narrative message of the card relating to the query: ${cleanQuestion || "their path"}.",
-  "whatSees": "What the Panorama sees in this card (1 short, clean, direct sentence in English).",
-  "whatAsks": "What the Panorama asks you through this card (1 short, clean, direct question in English).",
-  "invitation": "The Panorama's overall invitation based on this card (1 short, clean, direct invite in English)."
+  "synthesis": "A simple, poetic, yet very clear and plain 2-3 sentence summary of the narrative message of the card relating to the query: ${cleanQuestion || "their path"}.",
+  "whatSees": "What the Panorama sees in this card (1 short, clean, direct sentence).",
+  "whatAsks": "What the Panorama asks you through this card (1 short, clean, direct question).",
+  "invitation": "The Panorama's overall invitation based on this card (1 short, clean, direct invite)."
 }
 
 Respond ONLY with valid JSON. Do not include markdown code block syntax (like \`\`\`json) in your raw output.
 
 READING VOICE AND WRITING STYLE RULES (CRITICAL):
 1. THE ARTWORK MUST LEAD:
-   The final reading must feel grounded in the actual Panorama artwork. Use the visual description provided to anchor your interpretation. If the reading could still make sense without referencing the artwork, it is too generic. Rewrite it.
+   The final reading must feel grounded in your invented Panorama artwork. Use the visual description (originalPrompt) you created to anchor your interpretation. If the reading could still make sense without referencing the artwork, it is too generic. Rewrite it.
 
 2. MANDATORY FOCUS ON USER'S QUESTION:
    If the user has written/asked a question, every interpretation, synthesis, and card commentary MUST be directly, deeply, and explicitly related to that question. There must be a clear, logical, and intuitive connection/bridge between the visual elements/symbols of the card and the user's query. Do not just describe or interpret the card in isolation; you must actively answer or address the user's question using the card's visual cues. The question must be the primary lens of the entire reading.
@@ -153,6 +140,12 @@ READING VOICE AND WRITING STYLE RULES (CRITICAL):
    Use clear, warm, contemporary, and intimate language. Prefer concrete sentences over abstract spiritual terminology.
    Avoid: overly mystical language, therapy-speak, corporate language, unnecessary philosophical jargon, excessive metaphors, or repeating the same idea in different words.
    STRICTLY avoid clichés like: "In your current life trajectory", "cosmic energies", "on your spiritual journey", "your life path", "universal flow", "your roadmap", "energetic plane".
+
+6. LANGUAGE RULE (CRITICAL):
+   If the User Query "${cleanQuestion || "Silent Inquiry"}" is in Turkish, or contains Turkish words, you MUST write all text values in the JSON response in Turkish (translate all generated fields like title, coreVerb, coreEssence, centralTension, transformation.from, transformation.to, primaryArchetypes, symbols, lightExpression, shadowExpression, tarotResonances, visualObservations, promptObservations, invitation, warning, positionalInterpretation, contextualInterpretation, synthesis, whatSees, whatAsks, overall invitation, etc. into poetic, natural Turkish). If the query is in English or is a Silent Inquiry, write in English.
+
+7. DYNAMIC VARIETY RULE (CRITICAL):
+   Each card has a unique ID. The current card has ID #${selectedIds[0]}. Even if this card shares a base template name with another card you have interpreted, you MUST generate completely unique descriptions, metaphors, and interpretations. Avoid using the same boilerplate wording or repeating the same phrases. Vary the emotional focus, the visual focus of the description, and the advice based on this specific ID so that the user gets a fresh experience.
 `;
     } else {
       pastTableau = getTableauById(selectedIds[0]);
@@ -165,14 +158,11 @@ READING VOICE AND WRITING STYLE RULES (CRITICAL):
 
       prompt = `
 You are the interpretive guide for "Reading the Panorama".
-"Reading the Panorama" is a symbolic reading experience. Users select three hidden artworks from the "Panorama" collection representing Past, Present, and Future.
-
-The central philosophy is:
-"Tarot does not give meaning to the Panorama. Tarot is an interpretive language that helps reveal meanings already present within the Panorama."
+"Reading the Panorama" is a symbolic, deeply personalized reading experience. Users select three hidden cards from the "Panorama" collection representing Past, Present, and Future.
 
 User Query: "${cleanQuestion || "Silent Inquiry (no question asked)"}"
 
-Selected Tableaus:
+Selected Cards:
 
 1. PAST:
 ${pastDesc}
@@ -183,90 +173,93 @@ ${presentDesc}
 3. FUTURE:
 ${futureDesc}
 
-Based on the visual descriptions and symbolic metadata of these tableaus, generate a deep, personalized three-card reading.
+CRITICAL REQUIREMENT (100% DYNAMIC GENERATION):
+You must INVENT three completely custom, unique cards for the Panorama deck corresponding to these Day IDs. DO NOT use or copy any predefined templates.
+The "Reading the Panorama" deck is a collection of 90 panoramic scenes (watercolor sketches or digital paintings) representing different stages of a psychological and spiritual journey. The scenes feature quiet landscapes, lonely figures, ancient structures, scientific instruments (like telescopes), natural elements (fog, storm, stars), and surreal environments (sunken library, sky scaffold).
+For each card, creatively conceive a unique visual scene and its symbolic metadata based on its ID and the position role (Past, Present, Future).
 
 Generate a JSON response conforming strictly to this structure:
 {
   "cards": {
     "Past": {
-      "title": "A poetic, evocative title in English for this card based on the image (e.g. 'The Threshold of Winds')",
-      "coreVerb": "A single action verb or gerund in English (e.g. 'Crossing', 'Witnessing')",
-      "coreEssence": "A single, deep sentence in English describing the core essence of this card",
-      "centralTension": "An English sentence describing the central tension or dilemma shown in the scene",
+      "title": "A poetic, evocative title in English (or Turkish if query is Turkish) that you invent for the Past card",
+      "coreVerb": "A single action verb or gerund in English (or Turkish if query is Turkish)",
+      "coreEssence": "A single, deep sentence describing the core essence of this card",
+      "centralTension": "A sentence describing the central tension or dilemma shown in the scene",
       "transformation": {
-        "from": "An English phrase describing the state/feeling being left behind",
-        "to": "An English phrase describing the state/feeling being moved towards"
+        "from": "A phrase describing the state/feeling being left behind",
+        "to": "A phrase describing the state/feeling being moved towards"
       },
-      "primaryArchetypes": ["Archetype 1 in English", "Archetype 2 in English"],
-      "symbols": ["Symbol 1 in English", "Symbol 2 in English", "Symbol 3 in English"],
-      "lightExpression": "An English sentence describing the positive, constructive aspect of this card",
-      "shadowExpression": "An English sentence describing the shadow, warning, or self-sabotaging aspect",
-      "tarotResonances": ["Resonance 1 in English", "Resonance 2 in English"],
-      "visualObservations": ["Visual detail observation 1 in English", "Visual detail observation 2 in English"],
-      "promptObservations": ["An observation about the prompt or concept in English"],
-      "originalPrompt": "A detailed descriptive prompt in English describing what is visually happening in the image",
-      "invitation": "The card's specific invitation in English",
-      "warning": "The card's specific warning in English",
-      "positionalInterpretation": "A clear, plain 1-2 sentence description in English of how this position represents the roots/foundation of the query.",
-      "contextualInterpretation": "A direct, clear 2-3 sentence interpretation in English of the card's visual symbols and its essence in relation to the query: ${cleanQuestion || "their situation"}."
+      "primaryArchetypes": ["Archetype 1", "Archetype 2"],
+      "symbols": ["Symbol 1", "Symbol 2", "Symbol 3"],
+      "lightExpression": "A sentence describing the positive, constructive aspect of this card",
+      "shadowExpression": "A sentence describing the shadow, warning, or self-sabotaging aspect",
+      "tarotResonances": ["Resonance 1", "Resonance 2"],
+      "visualObservations": ["Visual detail observation 1", "Visual detail observation 2"],
+      "promptObservations": ["An observation about the prompt or concept"],
+      "originalPrompt": "A detailed descriptive prompt that you invent, describing the panoramic scene (watercolor/digital painting style)",
+      "invitation": "The card's specific invitation",
+      "warning": "The card's specific warning",
+      "positionalInterpretation": "A clear, plain 1-2 sentence description of how this position represents the roots/foundation of the query.",
+      "contextualInterpretation": "A direct, clear 2-3 sentence interpretation of the card's visual symbols and its essence in relation to the query: ${cleanQuestion || "their situation"}."
     },
     "Present": {
-      "title": "A poetic, evocative title in English for this card based on the image",
-      "coreVerb": "A single action verb or gerund in English",
-      "coreEssence": "A single, deep sentence in English describing the core essence",
-      "centralTension": "An English sentence describing the central tension or dilemma",
+      "title": "A poetic, evocative title in English (or Turkish if query is Turkish) that you invent for the Present card",
+      "coreVerb": "A single action verb or gerund in English (or Turkish if query is Turkish)",
+      "coreEssence": "A single, deep sentence describing the core essence of this card",
+      "centralTension": "A sentence describing the central tension or dilemma shown in the scene",
       "transformation": {
-        "from": "An English phrase describing the state/feeling being left behind",
-        "to": "An English phrase describing the state/feeling being moved towards"
+        "from": "A phrase describing the state/feeling being left behind",
+        "to": "A phrase describing the state/feeling being moved towards"
       },
-      "primaryArchetypes": ["Archetype 1 in English", "Archetype 2 in English"],
-      "symbols": ["Symbol 1 in English", "Symbol 2 in English", "Symbol 3 in English"],
-      "lightExpression": "An English sentence describing the positive, constructive aspect",
-      "shadowExpression": "An English sentence describing the shadow, warning aspect",
-      "tarotResonances": ["Resonance 1 in English", "Resonance 2 in English"],
-      "visualObservations": ["Visual detail observation 1 in English", "Visual detail observation 2 in English"],
-      "promptObservations": ["An observation in English"],
-      "originalPrompt": "A detailed descriptive prompt describing the image",
-      "invitation": "The card's specific invitation in English",
-      "warning": "The card's specific warning in English",
-      "positionalInterpretation": "A clear, plain 1-2 sentence description in English of how this position represents the current active state/challenges.",
-      "contextualInterpretation": "A direct, clear 2-3 sentence interpretation in English of the card's visual symbols and its essence in relation to the query: ${cleanQuestion || "their situation"}."
+      "primaryArchetypes": ["Archetype 1", "Archetype 2"],
+      "symbols": ["Symbol 1", "Symbol 2", "Symbol 3"],
+      "lightExpression": "A sentence describing the positive, constructive aspect of this card",
+      "shadowExpression": "A sentence describing the shadow, warning, or self-sabotaging aspect",
+      "tarotResonances": ["Resonance 1", "Resonance 2"],
+      "visualObservations": ["Visual detail observation 1", "Visual detail observation 2"],
+      "promptObservations": ["An observation about the prompt or concept"],
+      "originalPrompt": "A detailed descriptive prompt that you invent, describing the panoramic scene (watercolor/digital painting style)",
+      "invitation": "The card's specific invitation",
+      "warning": "The card's specific warning",
+      "positionalInterpretation": "A clear, plain 1-2 sentence description of how this position represents the current active state/challenges.",
+      "contextualInterpretation": "A direct, clear 2-3 sentence interpretation of the card's visual symbols and its essence in relation to the query: ${cleanQuestion || "their situation"}."
     },
     "Future": {
-      "title": "A poetic, evocative title in English for this card based on the image",
-      "coreVerb": "A single action verb or gerund in English",
-      "coreEssence": "A single, deep sentence in English describing the core essence",
-      "centralTension": "An English sentence describing the central tension or dilemma",
+      "title": "A poetic, evocative title in English (or Turkish if query is Turkish) that you invent for the Future card",
+      "coreVerb": "A single action verb or gerund in English (or Turkish if query is Turkish)",
+      "coreEssence": "A single, deep sentence describing the core essence of this card",
+      "centralTension": "A sentence describing the central tension or dilemma shown in the scene",
       "transformation": {
-        "from": "An English phrase describing the state/feeling being left behind",
-        "to": "An English phrase describing the state/feeling being moved towards"
+        "from": "A phrase describing the state/feeling being left behind",
+        "to": "A phrase describing the state/feeling being moved towards"
       },
-      "primaryArchetypes": ["Archetype 1 in English", "Archetype 2 in English"],
-      "symbols": ["Symbol 1 in English", "Symbol 2 in English", "Symbol 3 in English"],
-      "lightExpression": "An English sentence describing the positive, constructive aspect",
-      "shadowExpression": "An English sentence describing the shadow, warning aspect",
-      "tarotResonances": ["Resonance 1 in English", "Resonance 2 in English"],
-      "visualObservations": ["Visual detail observation 1 in English", "Visual detail observation 2 in English"],
-      "promptObservations": ["An observation in English"],
-      "originalPrompt": "A detailed descriptive prompt describing the image",
-      "invitation": "The card's specific invitation in English",
-      "warning": "The card's specific warning in English",
-      "positionalInterpretation": "A clear, plain 1-2 sentence description in English of how this position represents the future direction/advice.",
-      "contextualInterpretation": "A direct, clear 2-3 sentence interpretation in English of the card's visual symbols and its essence in relation to the query: ${cleanQuestion || "their situation"}."
+      "primaryArchetypes": ["Archetype 1", "Archetype 2"],
+      "symbols": ["Symbol 1", "Symbol 2", "Symbol 3"],
+      "lightExpression": "A sentence describing the positive, constructive aspect of this card",
+      "shadowExpression": "A sentence describing the shadow, warning, or self-sabotaging aspect",
+      "tarotResonances": ["Resonance 1", "Resonance 2"],
+      "visualObservations": ["Visual detail observation 1", "Visual detail observation 2"],
+      "promptObservations": ["An observation about the prompt or concept"],
+      "originalPrompt": "A detailed descriptive prompt that you invent, describing the panoramic scene (watercolor/digital painting style)",
+      "invitation": "The card's specific invitation",
+      "warning": "The card's specific warning",
+      "positionalInterpretation": "A clear, plain 1-2 sentence description of how this position represents the future direction/advice.",
+      "contextualInterpretation": "A direct, clear 2-3 sentence interpretation of the card's visual symbols and its essence in relation to the query: ${cleanQuestion || "their situation"}."
     }
   },
-  "relationshipAnalysis": "Stage 3 - A clean, direct 2-3 sentence analysis in English of the visual transition between the three images (crowd/density changes, open vs. closed spaces).",
-  "synthesis": "Stage 4 - A simple, poetic, yet very clear and plain 2-3 sentence summary in English of the narrative arc (Past -> Present -> Future) relating to the query: ${cleanQuestion || "their path"}.",
-  "whatSees": "Stage 5 - What the Panorama sees (1 short, clean, direct sentence in English).",
-  "whatAsks": "Stage 5 - What the Panorama asks (1 short, clean, direct question in English).",
-  "invitation": "Stage 5 - The Panorama's overall invitation (1 short, clean, direct invite in English)."
+  "relationshipAnalysis": "A clean, direct 2-3 sentence analysis of the visual transition between your three invented images (crowd/density changes, open vs. closed spaces).",
+  "synthesis": "A simple, poetic, yet very clear and plain 2-3 sentence summary of the narrative arc (Past -> Present -> Future) relating to the query: ${cleanQuestion || "their path"}.",
+  "whatSees": "What the Panorama sees (1 short, clean, direct sentence).",
+  "whatAsks": "What the Panorama asks (1 short, clean, direct question).",
+  "invitation": "The Panorama's overall invitation (1 short, clean, direct invite)."
 }
 
 Respond ONLY with valid JSON. Do not include markdown code block syntax (like \`\`\`json) in your raw output.
 
 READING VOICE AND WRITING STYLE RULES (CRITICAL):
 1. THE ARTWORK MUST LEAD:
-   The final reading must feel grounded in the actual Panorama artwork. Use the visual descriptions provided to anchor your interpretation. If the reading could still make sense without referencing the artwork, it is too generic. Rewrite it.
+   The final reading must feel grounded in your invented Panorama artwork. Use the visual descriptions (originalPrompt) you created to anchor your interpretation. If the reading could still make sense without referencing the artwork, it is too generic. Rewrite it.
 
 2. MANDATORY FOCUS ON USER'S QUESTION:
    If the user has written/asked a question, every interpretation, synthesis, relationship analysis, and card commentary MUST be directly, deeply, and explicitly related to that question. There must be a clear, logical, and intuitive connection/bridge between the visual elements/symbols of the cards and the user's query. Do not just describe or interpret the cards in isolation; you must actively answer or address the user's question using the cards' visual cues. The question must be the primary lens of the entire reading.
@@ -288,61 +281,103 @@ READING VOICE AND WRITING STYLE RULES (CRITICAL):
    Use clear, warm, contemporary, and intimate language. Prefer concrete sentences over abstract spiritual terminology.
    Avoid: overly mystical language, therapy-speak, corporate language, unnecessary philosophical jargon, excessive metaphors, or repeating the same idea in different words.
    STRICTLY avoid clichés like: "In your current life trajectory", "cosmic energies", "on your spiritual journey", "your life path", "universal flow", "your roadmap", "energetic plane".
+
+6. LANGUAGE RULE (CRITICAL):
+   If the User Query "${cleanQuestion || "Silent Inquiry"}" is in Turkish, or contains Turkish words, you MUST write all text values in the JSON response in Turkish (translate all generated fields like title, coreVerb, coreEssence, centralTension, transformation.from, transformation.to, primaryArchetypes, symbols, lightExpression, shadowExpression, tarotResonances, visualObservations, promptObservations, invitation, warning, positionalInterpretation, contextualInterpretation, relationshipAnalysis, synthesis, whatSees, whatAsks, overall invitation, etc. into poetic, natural Turkish). If the query is in English or is a Silent Inquiry, write in English.
+
+7. DYNAMIC VARIETY RULE (CRITICAL):
+   Each card has a unique ID. The selected cards have IDs: Past (#${selectedIds[0]}), Present (#${selectedIds[1]}), Future (#${selectedIds[2]}). Even if these cards share base templates with other cards you have interpreted, you MUST generate completely unique, distinct descriptions, metaphors, and interpretations. Avoid using the same boilerplate wording or repeating the same phrases. Vary the focus, emotional tone, and specific angle of the advice based on these specific IDs so that no two readings ever feel identical.
 `;
     }
 
-    logDebug(`Sending request to OpenRouter API (model: ${OPENROUTER_MODEL})`);
+    // List of fallback models to try if the primary model fails or is rate-limited
+    const modelCandidates = Array.from(new Set([
+      OPENROUTER_MODEL,
+      "google/gemma-4-31b-it:free",
+      "google/gemma-2-9b-it:free",
+      "openrouter/auto"
+    ]));
 
-    // Retry logic for rate limits (429) - up to 3 attempts with exponential backoff
-    const MAX_RETRIES = 3;
-    const RETRY_DELAYS = [5000, 10000, 20000]; // 5s, 10s, 20s
     let openRouterRes: Response | null = null;
+    let successfulModel = "";
+    let openRouterData: any = null;
 
-    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-      openRouterRes = await fetch(OPENROUTER_API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${apiKey}`,
-          "HTTP-Referer": "https://panorama.garden",
-          "X-Title": "Reading the Panorama",
-        },
-        body: JSON.stringify({
-          model: OPENROUTER_MODEL,
-          messages: [
-            {
-              role: "user",
-              content: prompt,
-            }
-          ],
-          temperature: 0.8,
-          max_tokens: 4096,
-        }),
-      });
+    for (const model of modelCandidates) {
+      logDebug(`Attempting to send request to OpenRouter API with model: ${model}`);
+      const MAX_RETRIES = 3;
+      const RETRY_DELAYS = [3000, 6000, 12000]; // 3s, 6s, 12s
+      let tempRes: Response | null = null;
+      let success = false;
 
-      logDebug(`OpenRouter API response code: ${openRouterRes.status} (attempt ${attempt + 1}/${MAX_RETRIES})`);
+      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        try {
+          tempRes = await fetch(OPENROUTER_API_URL, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${apiKey}`,
+              "HTTP-Referer": "https://panorama.garden",
+              "X-Title": "Reading the Panorama",
+            },
+            body: JSON.stringify({
+              model: model,
+              messages: [
+                {
+                  role: "user",
+                  content: prompt,
+                }
+              ],
+              temperature: 0.8,
+              max_tokens: 4096,
+            }),
+          });
 
-      if (openRouterRes.status === 429 && attempt < MAX_RETRIES - 1) {
-        const waitMs = RETRY_DELAYS[attempt];
-        logDebug(`Rate limited (429). Waiting ${waitMs / 1000}s before retry...`);
-        await new Promise(resolve => setTimeout(resolve, waitMs));
-        continue;
+          logDebug(`OpenRouter API response code for model ${model}: ${tempRes.status} (attempt ${attempt + 1}/${MAX_RETRIES})`);
+
+          if (tempRes.status === 429 && attempt < MAX_RETRIES - 1) {
+            const waitMs = RETRY_DELAYS[attempt];
+            logDebug(`Rate limited (429) for model ${model}. Waiting ${waitMs / 1000}s before retry...`);
+            await new Promise(resolve => setTimeout(resolve, waitMs));
+            continue;
+          }
+
+          if (tempRes.ok) {
+            success = true;
+            break;
+          } else {
+            const errText = await tempRes.text();
+            logDebug(`Failed attempt for model ${model}: Status ${tempRes.status} | Body: ${errText}`);
+            break; // Try next model
+          }
+        } catch (fetchErr: any) {
+          logDebug(`Network or fetch error for model ${model} (attempt ${attempt + 1}): ${fetchErr?.message || fetchErr}`);
+          if (attempt < MAX_RETRIES - 1) {
+            const waitMs = RETRY_DELAYS[attempt];
+            await new Promise(resolve => setTimeout(resolve, waitMs));
+            continue;
+          }
+        }
       }
 
-      break;
+      if (success && tempRes && tempRes.ok) {
+        try {
+          openRouterData = await tempRes.json();
+          if (openRouterData && openRouterData.choices?.[0]?.message?.content) {
+            openRouterRes = tempRes;
+            successfulModel = model;
+            break; // Succeeded! Break the candidate models loop.
+          } else {
+            logDebug(`Response for model ${model} JSON parsed, but choices/content was empty. Raw: ${JSON.stringify(openRouterData)}`);
+          }
+        } catch (jsonErr: any) {
+          logDebug(`JSON parse failed for model ${model} response: ${jsonErr?.message || jsonErr}`);
+        }
+      }
     }
 
-    if (!openRouterRes || !openRouterRes.ok) {
-      const errorText = openRouterRes ? await openRouterRes.text() : "No response";
-      logDebug(`OpenRouter API Error: Status ${openRouterRes?.status} | Body: ${errorText}`);
-      throw new Error(`OpenRouter API returned status ${openRouterRes?.status}: ${errorText}`);
-    }
-
-    const openRouterData = await openRouterRes.json();
-
-    if (!openRouterData) {
-      logDebug("Error: OpenRouter API response is empty.");
-      return NextResponse.json({ success: false, reason: "INVALID_OPENROUTER_RESPONSE" });
+    if (!openRouterRes || !openRouterData) {
+      logDebug("Error: All OpenRouter API candidate models failed or returned empty responses.");
+      return NextResponse.json({ success: false, reason: "ALL_MODELS_FAILED" });
     }
 
     const responseText = openRouterData?.choices?.[0]?.message?.content;
@@ -353,7 +388,7 @@ READING VOICE AND WRITING STYLE RULES (CRITICAL):
       return NextResponse.json({ success: false, reason: "EMPTY_RESPONSE" });
     }
 
-    logDebug(`Received raw text response (length: ${responseText.length})`);
+    logDebug(`Received raw text response (length: ${responseText.length}) using model: ${successfulModel}`);
 
     // Clean response text: strip markdown code fences if present
     let cleanedResponse = responseText.trim();
@@ -370,6 +405,7 @@ READING VOICE AND WRITING STYLE RULES (CRITICAL):
     let parsedResponse: any = null;
     try {
       parsedResponse = JSON.parse(cleanedResponse);
+      logDebug(`Parsed OpenRouter response: ${JSON.stringify(parsedResponse, null, 2)}`);
     } catch (parseErr: any) {
       logDebug(`Failed to parse responseText JSON: ${parseErr?.message || parseErr}`);
       logDebug(`Raw response was: ${cleanedResponse.substring(0, 500)}`);
@@ -527,8 +563,8 @@ READING VOICE AND WRITING STYLE RULES (CRITICAL):
       };
     }
 
-    logDebug("Reading generated and parsed successfully via OpenRouter. Returning success.");
-    return NextResponse.json({ success: true, reading });
+    logDebug(`Reading generated and parsed successfully via OpenRouter using model ${successfulModel}. Returning success.`);
+    return NextResponse.json({ success: true, reading, modelUsed: successfulModel });
   } catch (err: any) {
     logDebug(`Exception in API route: ${err?.message || err}\nStack: ${err?.stack || ""}`);
     console.error("Error generating OpenRouter reading:", err);
