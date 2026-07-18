@@ -53,7 +53,15 @@ export default function LandingPage() {
       {/* Footer */}
       <div className="absolute bottom-8 left-0 right-0 text-center flex flex-col items-center gap-1.5">
         <span className="text-[10px] uppercase tracking-widest text-neutral-600 font-mono">
-          The Panorama Collection • Tableau 00–90
+          <a
+            href="https://www.panorama.garden"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-neutral-400 transition-colors"
+          >
+            panorama.garden
+          </a>{" "}
+          • Tableau 00–90
         </span>
         <span className="text-[8px] uppercase tracking-widest text-neutral-700 font-mono">
           built by{" "}

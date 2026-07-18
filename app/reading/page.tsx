@@ -19,7 +19,7 @@ type FlowState = "question" | "shuffling" | "selection" | "reveal" | "synthesizi
 
 export default function ReadingFlowPage() {
   const [flowState, setFlowState] = useState<FlowState>("question");
-  const [readingMode, setReadingMode] = useState<"three" | "single">("three");
+  const [readingMode, setReadingMode] = useState<"three" | "single">("single");
   const [question, setQuestion] = useState("");
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [shuffledIds, setShuffledIds] = useState<number[]>([]);
@@ -138,7 +138,7 @@ export default function ReadingFlowPage() {
   };
 
   return (
-    <div className="flex-grow flex flex-col min-h-screen bg-neutral-950 text-neutral-100 pb-20">
+    <div className="flex-grow flex flex-col min-h-screen bg-neutral-950 text-neutral-100">
       {/* Header bar */}
       <header className="w-full py-6 px-6 md:px-12 flex justify-between items-center border-b border-neutral-950/80 bg-neutral-950/50 backdrop-blur z-30 sticky top-0">
         <Link
@@ -195,6 +195,17 @@ export default function ReadingFlowPage() {
               <div className="flex justify-center gap-3">
                 <button
                   type="button"
+                  onClick={() => setReadingMode("single")}
+                  className={`px-5 py-2.5 rounded-full text-[10px] uppercase tracking-widest font-semibold transition-all duration-500 border ${
+                    readingMode === "single"
+                      ? "bg-gold-500/10 border-gold-500/50 text-gold-300 shadow-[0_0_20px_rgba(190,144,46,0.1)]"
+                      : "bg-neutral-900/30 border-neutral-900 text-neutral-500 hover:text-neutral-300 hover:border-neutral-850"
+                  }`}
+                >
+                  Single Tableau
+                </button>
+                <button
+                  type="button"
                   onClick={() => setReadingMode("three")}
                   className={`px-5 py-2.5 rounded-full text-[10px] uppercase tracking-widest font-semibold transition-all duration-500 border ${
                     readingMode === "three"
@@ -203,17 +214,6 @@ export default function ReadingFlowPage() {
                   }`}
                 >
                   Three Tableaus (Past, Present, Future)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setReadingMode("single")}
-                  className={`px-5 py-2.5 rounded-full text-[10px] uppercase tracking-widest font-semibold transition-all duration-500 border ${
-                    readingMode === "single"
-                      ? "bg-gold-500/10 border-gold-500/50 text-gold-300 shadow-[0_0_20px_rgba(190,144,46,0.1)]"
-                      : "bg-neutral-900/30 border-neutral-900 text-neutral-500 hover:text-neutral-300 hover:border-neutral-850"
-                  }`}
-                >
-                  Single Tableau (Presence)
                 </button>
               </div>
             </div>
@@ -232,7 +232,7 @@ export default function ReadingFlowPage() {
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row items-center gap-4">
+              <div className="flex flex-col items-center gap-4">
                 <button
                   type="submit"
                   disabled={!question.trim()}
@@ -249,7 +249,7 @@ export default function ReadingFlowPage() {
                 <button
                   type="button"
                   onClick={handleSkipQuestion}
-                  className="w-full sm:w-auto px-8 py-3.5 bg-transparent hover:bg-neutral-900 text-neutral-400 hover:text-neutral-200 border border-neutral-850 hover:border-neutral-800 rounded-full text-xs uppercase tracking-widest font-medium transition-all duration-300 text-center"
+                  className="w-full sm:w-auto px-8 py-3.5 bg-transparent hover:bg-neutral-900 text-neutral-400 hover:text-neutral-200 rounded-full text-xs uppercase tracking-widest font-medium transition-all duration-300 text-center"
                 >
                   Continue without a question
                 </button>
@@ -437,6 +437,32 @@ export default function ReadingFlowPage() {
             <ReadingSynthesis result={readingResult} onRestart={handleRestart} />
           </div>
         )}
+      </div>
+
+      {/* Footer */}
+      <div className="w-full text-center flex flex-col items-center gap-1.5 pb-8 pt-4 z-20">
+        <span className="text-[10px] uppercase tracking-widest text-neutral-600 font-mono">
+          <a
+            href="https://www.panorama.garden"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-neutral-400 transition-colors"
+          >
+            panorama.garden
+          </a>{" "}
+          • Tableau 00–90
+        </span>
+        <span className="text-[8px] uppercase tracking-widest text-neutral-700 font-mono">
+          built by{" "}
+          <a
+            href="https://x.com/kaybidsteps"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-neutral-500 transition-colors underline decoration-neutral-700/50 underline-offset-2"
+          >
+            Kaybid
+          </a>
+        </span>
       </div>
     </div>
   );
