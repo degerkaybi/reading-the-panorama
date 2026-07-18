@@ -1,0 +1,21 @@
+
+=============================================
+URLs found in Canvas Page (/canvas)
+=============================================
+https://www.panorama.garden/canvas
+https://panorama.garden/canvas
+https://cdn.panorama.garden/generated_2026-07-17.jpg
+
+=============================================
+URLs found in Index Page (/)
+=============================================
+https://www.panorama.garden/
+https://panorama.garden
+https://cdn.panorama.garden/og-preview.jpg
+https://cdn.panorama.garden/season2/header/1.webp
+https://cdn.panorama.garden/season2/header/2.webp
+https://cdn.panorama.garden/season2/header/3.webp
+https://cdn.panorama.garden/season2/header/4.webp
+https://cdn.panorama.garden/season2/header/5.webp
+https://cdn.panorama.garden/season2/s2-rocket-rising.webp
+https://cdn.panorama.garden/season2/s2-rocket-falling.webp

@@ -1,0 +1,119 @@
+@import "tailwindcss";
+
+@theme {
+  --font-serif: var(--font-serif-custom), Georgia, serif;
+  --font-sans: var(--font-sans-custom), system-ui, -apple-system, sans-serif;
+
+  --color-gold-50: #fbf8eb;
+  --color-gold-100: #f6f0cd;
+  --color-gold-200: #eddfa0;
+  --color-gold-300: #e0c76c;
+  --color-gold-400: #d4ac42;
+  --color-gold-500: #be902e;
+  --color-gold-600: #9e7022;
+  --color-gold-700: #7d511b;
+  --color-gold-800: #613d19;
+  --color-gold-900: #4b3017;
+  --color-gold-950: #29180a;
+
+  --animate-fade-in: fade-in 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-fade-in-delayed: fade-in 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards;
+  --animate-pulse-slow: pulse-slow 4s ease-in-out infinite;
+  --animate-slide-up: slide-up 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes pulse-slow {
+    0%, 100% {
+      opacity: 0.2;
+    }
+    50% {
+      opacity: 0.4;
+    }
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0a0a0a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #262626;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #be902e;
+}
+
+/* Base overrides */
+body {
+  font-family: var(--font-sans);
+  background-color: #050505;
+  color: #e5e5e5;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-serif);
+}
+
+/* Cinematic Grain Background Effect */
+.grain-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.02'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* Glassmorphism Styles */
+.glass-panel {
+  background: rgba(15, 15, 15, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.glass-panel-glow {
+  background: rgba(20, 20, 20, 0.75);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(190, 144, 46, 0.15);
+  box-shadow: 0 0 40px rgba(190, 144, 46, 0.03);
+}
+
+/* Glowing text shadows */
+.text-glow {
+  text-shadow: 0 0 12px rgba(250, 204, 21, 0.2);
+}
+
+.text-glow-gold {
+  text-shadow: 0 0 20px rgba(190, 144, 46, 0.4);
+}
