@@ -30,10 +30,10 @@ export default function LandingPage() {
         {/* Philosophy Text */}
         <div className="space-y-6 text-neutral-400 font-light text-sm sm:text-base leading-relaxed max-w-xl mx-auto border-y border-neutral-900/80 py-8 animate-fade-in-delayed">
           <p className="italic text-neutral-300">
-            "Tarot does not give meaning to the Panorama. Tarot is an interpretive language that helps reveal meanings already present within the Panorama."
+            Reading the Panorama interprets the hidden narratives within 91 tableaus — offering clarity through a single card or deeper insight across three.
           </p>
           <p>
-            Choose three moments from the Panorama collection. They will remain hidden, obscured from sight, until they choose their place in your reading.
+            Choose your reading style, draw from the collection, and let the Panorama reveal what lies beneath the surface.
           </p>
         </div>
 
