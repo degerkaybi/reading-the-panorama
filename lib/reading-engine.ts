@@ -99,7 +99,7 @@ export function generateReading(
   const futureTableau = getTableauById(selectedIds[2]);
 
   // Stage 1 & 2: Positional and Contextual interpretations
-  const cards: Record<PositionRole, CardReading> = {
+  const cards: Partial<Record<PositionRole, CardReading>> = {
     Past: createCardReading(pastTableau, selectedIds[0], "Past", cleanQuestion),
     Present: createCardReading(presentTableau, selectedIds[1], "Present", cleanQuestion),
     Future: createCardReading(futureTableau, selectedIds[2], "Future", cleanQuestion),
