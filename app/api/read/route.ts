@@ -13,9 +13,13 @@ function logDebug(message: string) {
   }
 }
 
+// OpenRouter configuration
+const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
+const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || "google/gemma-4-27b-it:free";
+
 export async function POST(req: NextRequest) {
   try {
-    logDebug("=== New Reading Request Received ===");
+    logDebug("=== New Reading Request Received (OpenRouter) ===");
     let bodyText = "";
     try {
       bodyText = await req.text();
@@ -39,41 +43,40 @@ export async function POST(req: NextRequest) {
     const { question, selectedIds } = bodyData;
     logDebug(`Question: "${question || "None"}" | Selected IDs: ${JSON.stringify(selectedIds)}`);
 
-    const apiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+    const apiKey = process.env.OPENROUTER_API_KEY;
 
     if (!apiKey) {
-      logDebug("Error: No GEMINI_API_KEY found in process.env or NEXT_PUBLIC_GEMINI_API_KEY.");
-      console.log("No GEMINI_API_KEY found in environment variables. Using offline fallback.");
+      logDebug("Error: No OPENROUTER_API_KEY found in process.env.");
+      console.log("No OPENROUTER_API_KEY found in environment variables. Using offline fallback.");
       return NextResponse.json({ success: false, reason: "NO_API_KEY" });
     }
 
-    logDebug(`GEMINI_API_KEY is present (length: ${apiKey.length}, starts with: ${apiKey.substring(0, 5)}...)`);
+    logDebug(`OPENROUTER_API_KEY is present (length: ${apiKey.length}, starts with: ${apiKey.substring(0, 10)}...)`);
+    logDebug(`Using model: ${OPENROUTER_MODEL}`);
 
     const cleanQuestion = question && question.trim() !== "" ? question.trim() : null;
-
     const isSingle = selectedIds.length === 1;
 
-    // Fetch images and convert to base64 for Gemini multimodal input
-    const fetchImageBase64 = async (role: string, url: string) => {
-      try {
-        logDebug(`Fetching image for ${role} from: ${url}`);
-        const res = await fetch(url);
-        logDebug(`Fetch image response for ${role}: status ${res.status}, ok: ${res.ok}`);
-        if (!res.ok) throw new Error(`Status ${res.status}`);
-        const arrayBuffer = await res.arrayBuffer();
-        const base64 = Buffer.from(arrayBuffer).toString("base64");
-        logDebug(`Successfully converted ${role} image to base64 (length: ${base64.length})`);
-        return base64;
-      } catch (err: any) {
-        logDebug(`Failed to fetch/convert image for ${role} (${url}): ${err?.message || err}`);
-        console.error("Failed to fetch image for base64 conversion:", url, err);
-        return null;
-      }
+    // Build tableau descriptions for the prompt (text-based, since Gemma 4 doesn't support vision)
+    const describeTableau = (tableau: any, id: number) => {
+      return `Tableau #${id}:
+- Title: ${tableau.title}
+- Image URL: ${tableau.imageUrl}
+- Core Verb: ${tableau.coreVerb}
+- Core Essence: ${tableau.coreEssence}
+- Central Tension: ${tableau.centralTension}
+- Transformation: from "${tableau.transformation.from}" to "${tableau.transformation.to}"
+- Primary Archetypes: ${tableau.primaryArchetypes.join(", ")}
+- Symbols: ${tableau.symbols.join(", ")}
+- Light Expression: ${tableau.lightExpression}
+- Shadow Expression: ${tableau.shadowExpression}
+- Invitation: ${tableau.invitation}
+- Warning: ${tableau.warning}
+- Tarot Resonances: ${tableau.tarotResonances.join(", ")}
+- Original Prompt (visual description): ${tableau.originalPrompt}`;
     };
 
     let prompt = "";
-    const parts: any[] = [];
-
     let singleTableau: any = null;
     let pastTableau: any = null;
     let presentTableau: any = null;
@@ -81,7 +84,7 @@ export async function POST(req: NextRequest) {
 
     if (isSingle) {
       singleTableau = getTableauById(selectedIds[0]);
-      const singleBase64 = await fetchImageBase64("SINGLE", singleTableau.imageUrl);
+      const tableauDesc = describeTableau(singleTableau, selectedIds[0]);
 
       prompt = `
 You are the interpretive guide for "Reading the Panorama".
@@ -92,11 +95,10 @@ The central philosophy is:
 
 User Query: "${cleanQuestion || "Silent Inquiry (no question asked)"}"
 
-Selected Tableau: Tableau #${selectedIds[0]}
+Selected Tableau:
+${tableauDesc}
 
-Analyze the colors, visual subjects, population, and atmosphere of the selected image.
-
-For this single card, you must dynamically generate its permanent symbolic identity (metadata) and its reading interpretation based on what is visually shown in the image.
+Based on the visual description and symbolic metadata of this tableau, generate a deep, personalized reading.
 
 Generate a JSON response conforming strictly to this structure:
 {
@@ -134,7 +136,7 @@ Respond ONLY with valid JSON. Do not include markdown code block syntax (like \`
 
 READING VOICE AND WRITING STYLE RULES (CRITICAL):
 1. THE ARTWORK MUST LEAD:
-   The final reading must feel grounded in the actual Panorama artwork. First see the image, then understand the human experience, then interpret it. If the reading could still make sense without showing the artwork, it is too generic. Rewrite it.
+   The final reading must feel grounded in the actual Panorama artwork. Use the visual description provided to anchor your interpretation. If the reading could still make sense without referencing the artwork, it is too generic. Rewrite it.
 
 2. MANDATORY FOCUS ON USER'S QUESTION:
    If the user has written/asked a question, every interpretation, synthesis, and card commentary MUST be directly, deeply, and explicitly related to that question. There must be a clear, logical, and intuitive connection/bridge between the visual elements/symbols of the card and the user's query. Do not just describe or interpret the card in isolation; you must actively answer or address the user's question using the card's visual cues. The question must be the primary lens of the entire reading.
@@ -143,42 +145,23 @@ READING VOICE AND WRITING STYLE RULES (CRITICAL):
    Do not quote or paraphrase the metadata fields mechanically inside the positionalInterpretation, contextualInterpretation, relationshipAnalysis, or synthesis fields. The metadata is for display in the metadata cards, not to be read like dry text.
 
 4. INTERPRETATION STEPS:
-   - LOOK AT THE SCENE: Begin with what is actually happening in the artwork. Describe one or two concrete visual details (what people are doing, where they stand, movement, light, landscape, etc.) that matter to the interpretation. Do not describe every object.
-   - FIND THE HUMAN EXPERIENCE: Identify the human experience taking place in that scene (waiting, crossing, leaving, gathering, building, returning, confronting, choosing, witnessing, etc.).
+   - LOOK AT THE SCENE: Begin with what is actually happening in the artwork based on the visual description. Describe one or two concrete visual details that matter to the interpretation.
+   - FIND THE HUMAN EXPERIENCE: Identify the human experience taking place in that scene.
    - CONNECT TO QUERY: Connect it naturally to the user's question.
-     * Translate the scene to the user's actual question context (no generic spiritual advice).
-     * Use Tarot knowledge invisibly (do not use tarot terms directly).
 
 5. KEEP THE LANGUAGE SIMPLE:
    Use clear, warm, contemporary, and intimate language. Prefer concrete sentences over abstract spiritual terminology.
-   Prefer: "You may already have begun this change."
-   Instead of: "You have been navigating a transformative threshold of dynamic energetic alignment."
    Avoid: overly mystical language, therapy-speak, corporate language, unnecessary philosophical jargon, excessive metaphors, or repeating the same idea in different words.
-
-IMPORTANT CRITERIA FOR ENGLISH TRANSLATION:
-- Write strictly in English (clean, clear, warm, contemporary, and understandable English).
-- Keep interpretations concise, clear, and direct.
-- STRICTLY avoid clichés like: "In your current life trajectory", "cosmic energies", "on your spiritual journey", "your life path", "universal flow", "your roadmap", "energetic plane".
+   STRICTLY avoid clichés like: "In your current life trajectory", "cosmic energies", "on your spiritual journey", "your life path", "universal flow", "your roadmap", "energetic plane".
 `;
-      parts.push({ text: prompt });
-      if (singleBase64) {
-        parts.push({
-          inlineData: {
-            mimeType: "image/jpeg",
-            data: singleBase64
-          }
-        });
-      }
     } else {
       pastTableau = getTableauById(selectedIds[0]);
       presentTableau = getTableauById(selectedIds[1]);
       futureTableau = getTableauById(selectedIds[2]);
 
-      const [pastBase64, presentBase64, futureBase64] = await Promise.all([
-        fetchImageBase64("PAST", pastTableau.imageUrl),
-        fetchImageBase64("PRESENT", presentTableau.imageUrl),
-        fetchImageBase64("FUTURE", futureTableau.imageUrl),
-      ]);
+      const pastDesc = describeTableau(pastTableau, selectedIds[0]);
+      const presentDesc = describeTableau(presentTableau, selectedIds[1]);
+      const futureDesc = describeTableau(futureTableau, selectedIds[2]);
 
       prompt = `
 You are the interpretive guide for "Reading the Panorama".
@@ -190,13 +173,17 @@ The central philosophy is:
 User Query: "${cleanQuestion || "Silent Inquiry (no question asked)"}"
 
 Selected Tableaus:
-1. PAST: Tableau #${selectedIds[0]}
-2. PRESENT: Tableau #${selectedIds[1]}
-3. FUTURE: Tableau #${selectedIds[2]}
 
-Analyze the colors, visual subjects, population, and atmosphere of the selected images.
+1. PAST:
+${pastDesc}
 
-For each of the three cards (Past, Present, Future), you must dynamically generate its permanent symbolic identity (metadata) and its reading interpretation based on what is visually shown in the image.
+2. PRESENT:
+${presentDesc}
+
+3. FUTURE:
+${futureDesc}
+
+Based on the visual descriptions and symbolic metadata of these tableaus, generate a deep, personalized three-card reading.
 
 Generate a JSON response conforming strictly to this structure:
 {
@@ -205,7 +192,7 @@ Generate a JSON response conforming strictly to this structure:
       "title": "A poetic, evocative title in English for this card based on the image (e.g. 'The Threshold of Winds')",
       "coreVerb": "A single action verb or gerund in English (e.g. 'Crossing', 'Witnessing')",
       "coreEssence": "A single, deep sentence in English describing the core essence of this card",
-      "centralTension": "An English sentence describing the central tension or dilemma shown in the scene (e.g. 'The safety of the threshold vs. the unpredictable calling of the storm')",
+      "centralTension": "An English sentence describing the central tension or dilemma shown in the scene",
       "transformation": {
         "from": "An English phrase describing the state/feeling being left behind",
         "to": "An English phrase describing the state/feeling being moved towards"
@@ -218,8 +205,8 @@ Generate a JSON response conforming strictly to this structure:
       "visualObservations": ["Visual detail observation 1 in English", "Visual detail observation 2 in English"],
       "promptObservations": ["An observation about the prompt or concept in English"],
       "originalPrompt": "A detailed descriptive prompt in English describing what is visually happening in the image",
-      "invitation": "The card's specific invitation in English (e.g. 'Step through the portal. The wind is not trying to knock you down; it is indicating which way is open.')",
-      "warning": "The card's specific warning in English (e.g. 'Remaining on the threshold forever turns a gate into a wall.')",
+      "invitation": "The card's specific invitation in English",
+      "warning": "The card's specific warning in English",
       "positionalInterpretation": "A clear, plain 1-2 sentence description in English of how this position represents the roots/foundation of the query.",
       "contextualInterpretation": "A direct, clear 2-3 sentence interpretation in English of the card's visual symbols and its essence in relation to the query: ${cleanQuestion || "their situation"}."
     },
@@ -279,7 +266,7 @@ Respond ONLY with valid JSON. Do not include markdown code block syntax (like \`
 
 READING VOICE AND WRITING STYLE RULES (CRITICAL):
 1. THE ARTWORK MUST LEAD:
-   The final reading must feel grounded in the actual Panorama artwork. First see the image, then understand the human experience, then interpret it. If the reading could still make sense without showing the artwork, it is too generic. Rewrite it.
+   The final reading must feel grounded in the actual Panorama artwork. Use the visual descriptions provided to anchor your interpretation. If the reading could still make sense without referencing the artwork, it is too generic. Rewrite it.
 
 2. MANDATORY FOCUS ON USER'S QUESTION:
    If the user has written/asked a question, every interpretation, synthesis, relationship analysis, and card commentary MUST be directly, deeply, and explicitly related to that question. There must be a clear, logical, and intuitive connection/bridge between the visual elements/symbols of the cards and the user's query. Do not just describe or interpret the cards in isolation; you must actively answer or address the user's question using the cards' visual cues. The question must be the primary lens of the entire reading.
@@ -288,8 +275,8 @@ READING VOICE AND WRITING STYLE RULES (CRITICAL):
    Do not quote or paraphrase the metadata fields mechanically inside the positionalInterpretation, contextualInterpretation, relationshipAnalysis, or synthesis fields. The metadata is for display in the metadata cards, not to be read like dry text.
 
 4. INTERPRETATION STEPS:
-   - LOOK AT THE SCENE: Begin with what is actually happening in the artwork. Describe one or two concrete visual details (what people are doing, where they stand, movement, light, landscape, etc.) that matter to the interpretation. Do not describe every object.
-   - FIND THE HUMAN EXPERIENCE: Identify the human experience taking place in that scene (waiting, crossing, leaving, gathering, building, returning, confronting, choosing, witnessing, etc.).
+   - LOOK AT THE SCENE: Begin with what is actually happening in the artwork based on the visual description. Describe one or two concrete visual details that matter to the interpretation.
+   - FIND THE HUMAN EXPERIENCE: Identify the human experience taking place in that scene.
    - CONNECT TO POSITION & QUERY: Connect it naturally to the user's question and the card's position.
      * Past: how it contributed to the present situation.
      * Present: what dynamic is currently active.
@@ -299,103 +286,78 @@ READING VOICE AND WRITING STYLE RULES (CRITICAL):
 
 5. KEEP THE LANGUAGE SIMPLE:
    Use clear, warm, contemporary, and intimate language. Prefer concrete sentences over abstract spiritual terminology.
-   Prefer: "You may already have begun this change."
-   Instead of: "You have been navigating a transformative threshold of dynamic energetic alignment."
    Avoid: overly mystical language, therapy-speak, corporate language, unnecessary philosophical jargon, excessive metaphors, or repeating the same idea in different words.
-
-IMPORTANT CRITERIA FOR ENGLISH TRANSLATION:
-- Write strictly in English (clean, clear, warm, contemporary, and understandable English).
-- Keep interpretations concise, clear, and direct.
-- STRICTLY avoid clichés like: "In your current life trajectory", "cosmic energies", "on your spiritual journey", "your life path", "universal flow", "your roadmap", "energetic plane".
+   STRICTLY avoid clichés like: "In your current life trajectory", "cosmic energies", "on your spiritual journey", "your life path", "universal flow", "your roadmap", "energetic plane".
 `;
-
-      parts.push({ text: prompt });
-
-      if (pastBase64) {
-        parts.push({
-          inlineData: {
-            mimeType: "image/jpeg",
-            data: pastBase64
-          }
-        });
-      }
-      if (presentBase64) {
-        parts.push({
-          inlineData: {
-            mimeType: "image/jpeg",
-            data: presentBase64
-          }
-        });
-      }
-      if (futureBase64) {
-        parts.push({
-          inlineData: {
-            mimeType: "image/jpeg",
-            data: futureBase64
-          }
-        });
-      }
     }
 
-    logDebug(`Sending request to Gemini API (parts count: ${parts.length})`);
-    
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: parts
-            }
-          ],
-          generationConfig: {
-            responseMimeType: "application/json"
+    logDebug(`Sending request to OpenRouter API (model: ${OPENROUTER_MODEL})`);
+
+    const openRouterRes = await fetch(OPENROUTER_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+        "HTTP-Referer": "https://panorama.garden",
+        "X-Title": "Reading the Panorama",
+      },
+      body: JSON.stringify({
+        model: OPENROUTER_MODEL,
+        messages: [
+          {
+            role: "user",
+            content: prompt,
           }
-        })
-      }
-    );
+        ],
+        temperature: 0.8,
+        max_tokens: 4096,
+      }),
+    });
 
-    logDebug(`Gemini API response code: ${geminiRes.status}`);
+    logDebug(`OpenRouter API response code: ${openRouterRes.status}`);
 
-    if (!geminiRes.ok) {
-      const errorText = await geminiRes.text();
-      logDebug(`Gemini API Error: Status ${geminiRes.status} | Body: ${errorText}`);
-      throw new Error(`Gemini API returned status ${geminiRes.status}: ${errorText}`);
+    if (!openRouterRes.ok) {
+      const errorText = await openRouterRes.text();
+      logDebug(`OpenRouter API Error: Status ${openRouterRes.status} | Body: ${errorText}`);
+      throw new Error(`OpenRouter API returned status ${openRouterRes.status}: ${errorText}`);
     }
 
-    const geminiText = await geminiRes.text();
-    let geminiData: any = null;
-    if (geminiText && geminiText.trim()) {
-      try {
-        geminiData = JSON.parse(geminiText);
-      } catch (parseErr) {
-        logDebug(`Failed to parse Gemini API response JSON: ${parseErr}`);
-      }
+    const openRouterData = await openRouterRes.json();
+
+    if (!openRouterData) {
+      logDebug("Error: OpenRouter API response is empty.");
+      return NextResponse.json({ success: false, reason: "INVALID_OPENROUTER_RESPONSE" });
     }
 
-    if (!geminiData) {
-      logDebug("Error: Gemini API response is empty or not valid JSON.");
-      return NextResponse.json({ success: false, reason: "INVALID_GEMINI_RESPONSE" });
-    }
-
-    const responseText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text;
+    const responseText = openRouterData?.choices?.[0]?.message?.content;
 
     if (!responseText) {
-      logDebug(`Gemini API response candidates empty or missing parts. Raw data: ${JSON.stringify(geminiData)}`);
-      console.error("No text returned from Gemini API:", JSON.stringify(geminiData));
+      logDebug(`OpenRouter API response choices empty or missing content. Raw data: ${JSON.stringify(openRouterData)}`);
+      console.error("No text returned from OpenRouter API:", JSON.stringify(openRouterData));
       return NextResponse.json({ success: false, reason: "EMPTY_RESPONSE" });
     }
 
-    logDebug(`Received raw text response: ${responseText}`);
+    logDebug(`Received raw text response (length: ${responseText.length})`);
+
+    // Clean response text: strip markdown code fences if present
+    let cleanedResponse = responseText.trim();
+    if (cleanedResponse.startsWith("```json")) {
+      cleanedResponse = cleanedResponse.slice(7);
+    } else if (cleanedResponse.startsWith("```")) {
+      cleanedResponse = cleanedResponse.slice(3);
+    }
+    if (cleanedResponse.endsWith("```")) {
+      cleanedResponse = cleanedResponse.slice(0, -3);
+    }
+    cleanedResponse = cleanedResponse.trim();
 
     let parsedResponse: any = null;
     try {
-      parsedResponse = JSON.parse(responseText);
+      parsedResponse = JSON.parse(cleanedResponse);
     } catch (parseErr: any) {
       logDebug(`Failed to parse responseText JSON: ${parseErr?.message || parseErr}`);
-      console.error("Failed to parse responseText as JSON:", responseText);
+      logDebug(`Raw response was: ${cleanedResponse.substring(0, 500)}`);
+      console.error("Failed to parse responseText as JSON:", cleanedResponse);
       return NextResponse.json({ success: false, reason: "INVALID_RESPONSE_JSON" });
     }
 
@@ -409,7 +371,7 @@ IMPORTANT CRITERIA FOR ENGLISH TRANSLATION:
             tableau: {
               id: selectedIds[0],
               title: parsedResponse.cards.Single.title,
-              imageUrl: singleTableau.imageUrl, // Keep the correct CDN image URL
+              imageUrl: singleTableau.imageUrl,
               originalPrompt: parsedResponse.cards.Single.originalPrompt,
               coreEssence: parsedResponse.cards.Single.coreEssence,
               coreVerb: parsedResponse.cards.Single.coreVerb,
@@ -451,7 +413,7 @@ IMPORTANT CRITERIA FOR ENGLISH TRANSLATION:
             tableau: {
               id: selectedIds[0],
               title: parsedResponse.cards.Past.title,
-              imageUrl: pastTableau.imageUrl, // Keep the correct CDN image URL
+              imageUrl: pastTableau.imageUrl,
               originalPrompt: parsedResponse.cards.Past.originalPrompt,
               coreEssence: parsedResponse.cards.Past.coreEssence,
               coreVerb: parsedResponse.cards.Past.coreVerb,
@@ -482,7 +444,7 @@ IMPORTANT CRITERIA FOR ENGLISH TRANSLATION:
             tableau: {
               id: selectedIds[1],
               title: parsedResponse.cards.Present.title,
-              imageUrl: presentTableau.imageUrl, // Keep the correct CDN image URL
+              imageUrl: presentTableau.imageUrl,
               originalPrompt: parsedResponse.cards.Present.originalPrompt,
               coreEssence: parsedResponse.cards.Present.coreEssence,
               coreVerb: parsedResponse.cards.Present.coreVerb,
@@ -513,7 +475,7 @@ IMPORTANT CRITERIA FOR ENGLISH TRANSLATION:
             tableau: {
               id: selectedIds[2],
               title: parsedResponse.cards.Future.title,
-              imageUrl: futureTableau.imageUrl, // Keep the correct CDN image URL
+              imageUrl: futureTableau.imageUrl,
               originalPrompt: parsedResponse.cards.Future.originalPrompt,
               coreEssence: parsedResponse.cards.Future.coreEssence,
               coreVerb: parsedResponse.cards.Future.coreVerb,
@@ -549,11 +511,11 @@ IMPORTANT CRITERIA FOR ENGLISH TRANSLATION:
       };
     }
 
-    logDebug("Reading generated and parsed successfully. Returning success.");
+    logDebug("Reading generated and parsed successfully via OpenRouter. Returning success.");
     return NextResponse.json({ success: true, reading });
   } catch (err: any) {
     logDebug(`Exception in API route: ${err?.message || err}\nStack: ${err?.stack || ""}`);
-    console.error("Error generating Gemini reading:", err);
+    console.error("Error generating OpenRouter reading:", err);
     return NextResponse.json({ success: false, reason: "API_ERROR" });
   }
 }
