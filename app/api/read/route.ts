@@ -15,7 +15,7 @@ function logDebug(message: string) {
 
 // OpenRouter configuration
 const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
-const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || "google/gemma-4-27b-it:free";
+const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || "google/gemma-4-31b-it:free";
 
 export async function POST(req: NextRequest) {
   try {
@@ -293,33 +293,49 @@ READING VOICE AND WRITING STYLE RULES (CRITICAL):
 
     logDebug(`Sending request to OpenRouter API (model: ${OPENROUTER_MODEL})`);
 
-    const openRouterRes = await fetch(OPENROUTER_API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
-        "HTTP-Referer": "https://panorama.garden",
-        "X-Title": "Reading the Panorama",
-      },
-      body: JSON.stringify({
-        model: OPENROUTER_MODEL,
-        messages: [
-          {
-            role: "user",
-            content: prompt,
-          }
-        ],
-        temperature: 0.8,
-        max_tokens: 4096,
-      }),
-    });
+    // Retry logic for rate limits (429) - up to 3 attempts with exponential backoff
+    const MAX_RETRIES = 3;
+    const RETRY_DELAYS = [5000, 10000, 20000]; // 5s, 10s, 20s
+    let openRouterRes: Response | null = null;
 
-    logDebug(`OpenRouter API response code: ${openRouterRes.status}`);
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      openRouterRes = await fetch(OPENROUTER_API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`,
+          "HTTP-Referer": "https://panorama.garden",
+          "X-Title": "Reading the Panorama",
+        },
+        body: JSON.stringify({
+          model: OPENROUTER_MODEL,
+          messages: [
+            {
+              role: "user",
+              content: prompt,
+            }
+          ],
+          temperature: 0.8,
+          max_tokens: 4096,
+        }),
+      });
 
-    if (!openRouterRes.ok) {
-      const errorText = await openRouterRes.text();
-      logDebug(`OpenRouter API Error: Status ${openRouterRes.status} | Body: ${errorText}`);
-      throw new Error(`OpenRouter API returned status ${openRouterRes.status}: ${errorText}`);
+      logDebug(`OpenRouter API response code: ${openRouterRes.status} (attempt ${attempt + 1}/${MAX_RETRIES})`);
+
+      if (openRouterRes.status === 429 && attempt < MAX_RETRIES - 1) {
+        const waitMs = RETRY_DELAYS[attempt];
+        logDebug(`Rate limited (429). Waiting ${waitMs / 1000}s before retry...`);
+        await new Promise(resolve => setTimeout(resolve, waitMs));
+        continue;
+      }
+
+      break;
+    }
+
+    if (!openRouterRes || !openRouterRes.ok) {
+      const errorText = openRouterRes ? await openRouterRes.text() : "No response";
+      logDebug(`OpenRouter API Error: Status ${openRouterRes?.status} | Body: ${errorText}`);
+      throw new Error(`OpenRouter API returned status ${openRouterRes?.status}: ${errorText}`);
     }
 
     const openRouterData = await openRouterRes.json();
