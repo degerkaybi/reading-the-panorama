@@ -30,7 +30,7 @@ export default function LandingPage() {
         {/* Philosophy Text */}
         <div className="space-y-6 text-neutral-400 font-light text-sm sm:text-base leading-relaxed max-w-xl mx-auto border-y border-neutral-900/80 py-8 animate-fade-in-delayed">
           <p className="italic text-neutral-300">
-            Reading the Panorama interprets the hidden narratives within 91 tableaus — offering clarity through a single card or deeper insight across three.
+            Reading the Panorama interprets the hidden narratives within tableaus — offering clarity through a single card or deeper insight across three.
           </p>
           <p>
             Choose your reading style, draw from the collection, and let the Panorama reveal what lies beneath the surface.
