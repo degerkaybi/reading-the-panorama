@@ -67,7 +67,10 @@ export default function ReadingSynthesis({ result, onRestart }: ReadingSynthesis
         body: JSON.stringify(result),
       });
 
-      if (!response.ok) throw new Error("Failed to share");
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to share: Status ${response.status} - ${errorText}`);
+      }
 
       const data = await response.json();
       const url = `${window.location.origin}/share/${data.id}`;
