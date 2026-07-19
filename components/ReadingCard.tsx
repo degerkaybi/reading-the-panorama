@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { CardReading } from "../types/reading";
-import { Info, Compass, ChevronDown, ChevronUp, Eye, FileText, X } from "lucide-react";
+import { Compass, ChevronDown, ChevronUp, Eye, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getCardDateSlashLabel } from "../lib/reading-engine";
 
@@ -113,121 +113,23 @@ export default function ReadingCard({ card }: ReadingCardProps) {
               <div
                 className="mt-6 space-y-6 overflow-hidden animate-fade-in"
               >
-                {/* Core values */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                  <div className="space-y-1 bg-neutral-900/30 p-3 rounded border border-neutral-900">
-                    <span className="text-neutral-500 font-mono block">CORE ESSENCE</span>
-                    <p className="text-neutral-300 font-light">{tableau.coreEssence}</p>
-                  </div>
-                  <div className="space-y-1 bg-neutral-900/30 p-3 rounded border border-neutral-900">
-                    <span className="text-neutral-500 font-mono block">CENTRAL TENSION</span>
-                    <p className="text-neutral-300 font-light">{tableau.centralTension}</p>
-                  </div>
-                  <div className="space-y-1 bg-neutral-900/30 p-3 rounded border border-neutral-900">
-                    <span className="text-neutral-500 font-mono block">TRANSFORMATION FROM</span>
-                    <p className="text-neutral-300 font-light">{tableau.transformation.from}</p>
-                  </div>
-                  <div className="space-y-1 bg-neutral-900/30 p-3 rounded border border-neutral-900">
-                    <span className="text-neutral-500 font-mono block">TRANSFORMATION TO</span>
-                    <p className="text-neutral-300 font-light">{tableau.transformation.to}</p>
-                  </div>
-                </div>
-
-                {/* Archetypes & Symbols */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs border-t border-neutral-900/60 pt-4">
-                  <div className="space-y-2">
-                    <span className="text-neutral-500 font-mono block">PRIMARY ARCHETYPES</span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {Array.isArray(tableau.primaryArchetypes) ? (
-                        tableau.primaryArchetypes.map((arch) => (
-                          <span key={arch} className="px-2 py-1 bg-neutral-900 border border-neutral-850 rounded text-neutral-300">
-                            {arch}
-                          </span>
-                        ))
-                      ) : tableau.primaryArchetypes ? (
-                        <span className="px-2 py-1 bg-neutral-900 border border-neutral-850 rounded text-neutral-300">
-                          {tableau.primaryArchetypes}
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <span className="text-neutral-500 font-mono block">KEY SYMBOLS</span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {Array.isArray(tableau.symbols) ? (
-                        tableau.symbols.map((sym) => (
-                          <span key={sym} className="px-2 py-1 bg-neutral-900 border border-neutral-850 rounded text-neutral-300">
-                            {sym}
-                          </span>
-                        ))
-                      ) : tableau.symbols ? (
-                        <span className="px-2 py-1 bg-neutral-900 border border-neutral-850 rounded text-neutral-300">
-                          {tableau.symbols}
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Light & Shadow Expressions */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs border-t border-neutral-900/60 pt-4">
-                  <div className="space-y-1 bg-emerald-950/5 p-3 rounded border border-emerald-900/10">
-                    <span className="text-emerald-500 font-mono block">LIGHT EXPRESSION</span>
-                    <p className="text-neutral-300 font-light">{tableau.lightExpression}</p>
-                  </div>
-                  <div className="space-y-1 bg-red-950/5 p-3 rounded border border-red-900/10">
-                    <span className="text-red-400 font-mono block">SHADOW EXPRESSION</span>
-                    <p className="text-neutral-300 font-light">{tableau.shadowExpression}</p>
-                  </div>
-                </div>
-
-                {/* Tarot Resonance */}
-                <div className="text-xs bg-neutral-900/20 p-3 rounded border border-neutral-900/40">
-                  <span className="text-neutral-500 font-mono block mb-1">INTERPRETIVE RESONANCES (TAROT)</span>
-                  <div className="flex flex-wrap gap-2 text-gold-300 font-light">
-                    {Array.isArray(tableau.tarotResonances) ? (
-                      tableau.tarotResonances.map((res, i) => (
-                        <span key={res}>
-                          {res}
-                          {i < tableau.tarotResonances.length - 1 && <span className="text-neutral-800 ml-2">|</span>}
-                        </span>
-                      ))
-                    ) : tableau.tarotResonances ? (
-                      <span>{tableau.tarotResonances}</span>
-                    ) : null}
-                  </div>
-                </div>
-
                 {/* Observations */}
-                <div className="space-y-3 text-xs border-t border-neutral-900/60 pt-4">
-                  <div className="space-y-1">
-                    <span className="text-neutral-500 font-mono flex items-center gap-1.5">
-                      <Eye className="w-3.5 h-3.5" /> Visual Composition Notes
-                    </span>
-                    <ul className="list-disc list-inside text-neutral-400 space-y-1 font-light pl-1">
-                      {Array.isArray(tableau.visualObservations) ? (
-                        tableau.visualObservations.map((obs, i) => (
-                          <li key={i}>{obs}</li>
-                        ))
-                      ) : tableau.visualObservations ? (
-                        <li>{tableau.visualObservations}</li>
-                      ) : null}
-                    </ul>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-neutral-500 font-mono flex items-center gap-1.5">
-                      <FileText className="w-3.5 h-3.5" /> Generation Prompt Observations
-                    </span>
-                    <ul className="list-disc list-inside text-neutral-400 space-y-1 font-light pl-1">
-                      {Array.isArray(tableau.promptObservations) ? (
-                        tableau.promptObservations.map((obs, i) => (
-                          <li key={i}>{obs}</li>
-                        ))
-                      ) : tableau.promptObservations ? (
-                        <li>{tableau.promptObservations}</li>
-                      ) : null}
-                    </ul>
-                  </div>
+                <div className="space-y-1 text-xs">
+                  <span className="text-neutral-500 font-mono flex items-center gap-1.5 font-semibold">
+                    <Eye className="w-3.5 h-3.5 text-gold-500/80" />
+                    {Array.isArray(tableau.visualObservations) && tableau.visualObservations.length === 1
+                      ? "Visual Composition Note"
+                      : "Visual Composition Notes"}
+                  </span>
+                  <ul className="list-disc list-inside text-neutral-400 space-y-1.5 font-light pl-1">
+                    {Array.isArray(tableau.visualObservations) ? (
+                      tableau.visualObservations.map((obs, i) => (
+                        <li key={i}>{obs}</li>
+                      ))
+                    ) : tableau.visualObservations ? (
+                      <li>{tableau.visualObservations}</li>
+                    ) : null}
+                  </ul>
                 </div>
 
                 {/* Original Prompt */}

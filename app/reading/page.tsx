@@ -162,9 +162,9 @@ export default function ReadingFlowPage() {
               if (isMounted) {
                 console.error("API route returned success: false. Reason:", reason);
                 if (reason === "RATE_LIMITED") {
-                  setApiError("Okuma limitinize ulaştınız. Her 5 saatte en fazla 3 okuma hakkınız bulunmaktadır.");
+                  setApiError("You have reached your reading limit. You have a maximum of 3 readings every 5 hours.");
                 } else {
-                  setApiError(`AI okuma başarısız oldu (${reason}). Lütfen tekrar deneyin.`);
+                  setApiError(`AI reading failed (${reason}). Please try again.`);
                 }
                 setFlowState("result");
               }
@@ -172,14 +172,14 @@ export default function ReadingFlowPage() {
           } else {
             console.error("API route returned non-200 status:", response.status);
             if (isMounted) {
-              setApiError(`Sunucu hatası (${response.status}). Lütfen tekrar deneyin.`);
+              setApiError(`Server error (${response.status}). Please try again.`);
               setFlowState("result");
             }
           }
         } catch (err: any) {
           console.error("Failed to generate reading via AI API:", err);
           if (isMounted) {
-            setApiError(`Bağlantı hatası: ${err?.message || "Bilinmeyen hata"}. Lütfen tekrar deneyin.`);
+            setApiError(`Connection error: ${err?.message || "unknown error"}. Please try again.`);
             setFlowState("result");
           }
         }
@@ -494,7 +494,7 @@ export default function ReadingFlowPage() {
               </div>
               <div className="space-y-3">
                 <span className="text-[10px] uppercase tracking-widest text-red-400 font-semibold font-mono">
-                  Okuma Başarısız
+                  Reading Failed
                 </span>
                 <p className="text-sm text-neutral-400 font-light leading-relaxed">
                   {apiError}
@@ -505,13 +505,13 @@ export default function ReadingFlowPage() {
                   onClick={handleRetry}
                   className="px-6 py-3 bg-gold-500 hover:bg-gold-400 text-neutral-950 font-sans font-semibold text-xs uppercase tracking-widest rounded-full shadow-[0_0_20px_rgba(190,144,46,0.2)] transition-all duration-300"
                 >
-                  Tekrar Dene
+                  Try Again
                 </button>
                 <button
                   onClick={handleRestart}
                   className="px-6 py-3 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 font-sans font-semibold text-xs uppercase tracking-widest rounded-full border border-neutral-800 transition-all duration-300"
                 >
-                  Baştan Başla
+                  Start Over
                 </button>
               </div>
             </div>

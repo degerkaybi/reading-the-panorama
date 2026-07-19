@@ -1,6 +1,8 @@
-import React from "react";
+"use client";
+
+import React, { useState } from "react";
 import { ReadingResult } from "../types/reading";
-import { Sparkles, HelpCircle, Compass, ArrowRight } from "lucide-react";
+import { Sparkles, HelpCircle, Compass, ArrowRight, Share2, Check } from "lucide-react";
 
 interface ReadingSynthesisProps {
   result: ReadingResult;
@@ -8,6 +10,50 @@ interface ReadingSynthesisProps {
 }
 
 export default function ReadingSynthesis({ result, onRestart }: ReadingSynthesisProps) {
+  const [shareState, setShareState] = useState<"idle" | "loading" | "copied" | "error">("idle");
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+
+  const handleShare = async () => {
+    if (shareState === "loading") return;
+
+    if (shareUrl) {
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        setShareState("copied");
+        setTimeout(() => setShareState("idle"), 2000);
+      } catch (err) {
+        console.error("Failed to copy link:", err);
+        setShareState("error");
+      }
+      return;
+    }
+
+    setShareState("loading");
+    try {
+      const response = await fetch("/api/share", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(result),
+      });
+
+      if (!response.ok) throw new Error("Failed to share");
+
+      const data = await response.json();
+      const url = `${window.location.origin}/share/${data.id}`;
+      setShareUrl(url);
+
+      await navigator.clipboard.writeText(url);
+      setShareState("copied");
+      setTimeout(() => setShareState("idle"), 2000);
+    } catch (error) {
+      console.error("Failed to create share link:", error);
+      setShareState("error");
+      setTimeout(() => setShareState("idle"), 3000);
+    }
+  };
+
   return (
     <div className="w-full max-w-4xl mx-auto space-y-16 py-12 px-4">
       {/* 1. Relationship Analysis & Flow */}
@@ -109,13 +155,45 @@ export default function ReadingSynthesis({ result, onRestart }: ReadingSynthesis
         </div>
       </section>
 
-      {/* Restart CTA */}
+      {/* CTA Buttons */}
       <div
-        className="flex justify-center pt-8 animate-fade-in"
+        className="flex flex-col sm:flex-row justify-center items-center gap-4 pt-8 animate-fade-in"
       >
         <button
+          onClick={handleShare}
+          disabled={shareState === "loading"}
+          className={`px-8 py-3 rounded-full font-mono text-xs uppercase tracking-widest transition-all duration-300 flex items-center gap-2 border cursor-pointer min-w-[200px] justify-center ${
+            shareState === "copied"
+              ? "bg-emerald-950/80 border-emerald-500/50 text-emerald-400"
+              : shareState === "error"
+              ? "bg-red-950/80 border-red-500/50 text-red-400"
+              : "bg-gold-500 hover:bg-gold-400 text-neutral-950 border-gold-500 font-semibold shadow-[0_0_20px_rgba(190,144,46,0.15)]"
+          }`}
+        >
+          {shareState === "idle" && (
+            <>
+              <Share2 className="w-4 h-4" />
+              Share Reading
+            </>
+          )}
+          {shareState === "loading" && (
+            <>
+              <div className="w-4 h-4 border-2 border-neutral-950 border-t-transparent rounded-full animate-spin" />
+              Generating Link...
+            </>
+          )}
+          {shareState === "copied" && (
+            <>
+              <Check className="w-4 h-4" />
+              Link Copied!
+            </>
+          )}
+          {shareState === "error" && <>Failed to Share</>}
+        </button>
+
+        <button
           onClick={onRestart}
-          className="px-8 py-3 bg-neutral-900 hover:bg-neutral-850 text-neutral-400 hover:text-white border border-neutral-850 rounded-full font-mono text-xs uppercase tracking-widest transition-all duration-300 flex items-center gap-2"
+          className="px-8 py-3 bg-neutral-900 hover:bg-neutral-850 text-neutral-400 hover:text-white border border-neutral-850 rounded-full font-mono text-xs uppercase tracking-widest transition-all duration-300 flex items-center gap-2 cursor-pointer min-w-[200px] justify-center"
         >
           Begin a New Reading
           <ArrowRight className="w-4 h-4" />
