@@ -41,10 +41,10 @@ export function getSafeDayId(id: number): number {
   return id % (maxAvailable + 1);
 }
 
-// Convert a dayId to a human-readable date label (e.g. "23 Nisan 2026")
-const TURKISH_MONTHS = [
-  "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
-  "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"
+// Convert a dayId to a human-readable date label (e.g. "23 April 2026")
+const ENGLISH_MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"
 ];
 
 export function getCardDateLabel(dayId: number): string {
@@ -53,7 +53,7 @@ export function getCardDateLabel(dayId: number): string {
   const targetDate = new Date(genesisDate.getTime() + offsetDays * 24 * 60 * 60 * 1000);
   
   const dd = targetDate.getUTCDate();
-  const mm = TURKISH_MONTHS[targetDate.getUTCMonth()];
+  const mm = ENGLISH_MONTHS[targetDate.getUTCMonth()];
   const yyyy = targetDate.getUTCFullYear();
   
   return `${dd} ${mm} ${yyyy}`;

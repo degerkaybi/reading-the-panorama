@@ -135,27 +135,29 @@ export default function ReadingFlowPage() {
               }
             }
             console.log("Response body from /api/read:", data);
-            if (data && data.success && isMounted) {
-              console.log("Successfully generated live AI reading!");
-              setReadingResult(data.reading);
-              setReadingSource("live");
-              
-              // Exclude these selected IDs from appearing in the next shuffle session
-              try {
-                localStorage.setItem("previousSelectedIds", JSON.stringify(selectedIds));
-              } catch (e) {
-                console.error("Failed to save selectedIds to localStorage:", e);
-              }
+            if (data && data.success) {
+              if (isMounted) {
+                console.log("Successfully generated live AI reading!");
+                setReadingResult(data.reading);
+                setReadingSource("live");
+                
+                // Exclude these selected IDs from appearing in the next shuffle session
+                try {
+                  localStorage.setItem("previousSelectedIds", JSON.stringify(selectedIds));
+                } catch (e) {
+                  console.error("Failed to save selectedIds to localStorage:", e);
+                }
 
-              // Update local state immediately
-              setRateLimitInfo(getRateLimitInfo());
-              
-              setFlowState("result");
+                // Update local state immediately
+                setRateLimitInfo(getRateLimitInfo());
+                
+                setFlowState("result");
+              }
               return;
             } else {
               const reason = (data && data.reason) || "unknown";
-              console.error("API route returned success: false. Reason:", reason);
               if (isMounted) {
+                console.error("API route returned success: false. Reason:", reason);
                 if (reason === "RATE_LIMITED") {
                   setApiError("Okuma limitinize ulaştınız. Her 5 saatte en fazla 3 okuma hakkınız bulunmaktadır.");
                 } else {
