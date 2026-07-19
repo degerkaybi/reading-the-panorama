@@ -15,7 +15,17 @@ function logDebug(message: string) {
 
 // OpenRouter configuration
 const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
-const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || "google/gemma-4-31b-it:free";
+const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || "moonshotai/kimi-k2.6";
+
+function safeArrayOfStrings(val: any): string[] {
+  if (Array.isArray(val)) {
+    return val.filter(item => typeof item === "string");
+  }
+  if (typeof val === "string" && val.trim() !== "") {
+    return [val.trim()];
+  }
+  return [];
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -293,8 +303,10 @@ READING VOICE AND WRITING STYLE RULES (CRITICAL):
     // List of fallback models to try if the primary model fails or is rate-limited
     const modelCandidates = Array.from(new Set([
       OPENROUTER_MODEL,
+      "moonshotai/kimi-k2.6",
+      "moonshotai/kimi-k3",
+      "qwen/qwen3-vl-8b-instruct",
       "google/gemma-4-31b-it:free",
-      "google/gemma-2-9b-it:free",
       "openrouter/auto"
     ]));
 
@@ -328,7 +340,7 @@ READING VOICE AND WRITING STYLE RULES (CRITICAL):
                 }
               ],
               temperature: 0.8,
-              max_tokens: 4096,
+              max_tokens: 2048,
             }),
           });
 
@@ -432,18 +444,18 @@ READING VOICE AND WRITING STYLE RULES (CRITICAL):
                 from: parsedResponse.cards.Single.transformation.from,
                 to: parsedResponse.cards.Single.transformation.to,
               },
-              primaryArchetypes: parsedResponse.cards.Single.primaryArchetypes,
+              primaryArchetypes: safeArrayOfStrings(parsedResponse.cards?.Single?.primaryArchetypes),
               secondaryArchetypes: [],
-              symbols: parsedResponse.cards.Single.symbols,
-              lightExpression: parsedResponse.cards.Single.lightExpression,
-              shadowExpression: parsedResponse.cards.Single.shadowExpression,
-              invitation: parsedResponse.cards.Single.invitation || "",
-              warning: parsedResponse.cards.Single.warning || "",
+              symbols: safeArrayOfStrings(parsedResponse.cards?.Single?.symbols),
+              lightExpression: parsedResponse.cards?.Single?.lightExpression || "",
+              shadowExpression: parsedResponse.cards?.Single?.shadowExpression || "",
+              invitation: parsedResponse.cards?.Single?.invitation || "",
+              warning: parsedResponse.cards?.Single?.warning || "",
               supportedMeanings: [],
               unsupportedMeanings: [],
-              tarotResonances: parsedResponse.cards.Single.tarotResonances,
-              visualObservations: parsedResponse.cards.Single.visualObservations,
-              promptObservations: parsedResponse.cards.Single.promptObservations,
+              tarotResonances: safeArrayOfStrings(parsedResponse.cards?.Single?.tarotResonances),
+              visualObservations: safeArrayOfStrings(parsedResponse.cards?.Single?.visualObservations),
+              promptObservations: safeArrayOfStrings(parsedResponse.cards?.Single?.promptObservations),
             },
             selectedId: selectedIds[0],
             role: "Single",
@@ -474,18 +486,18 @@ READING VOICE AND WRITING STYLE RULES (CRITICAL):
                 from: parsedResponse.cards.Past.transformation.from,
                 to: parsedResponse.cards.Past.transformation.to,
               },
-              primaryArchetypes: parsedResponse.cards.Past.primaryArchetypes,
+              primaryArchetypes: safeArrayOfStrings(parsedResponse.cards?.Past?.primaryArchetypes),
               secondaryArchetypes: [],
-              symbols: parsedResponse.cards.Past.symbols,
-              lightExpression: parsedResponse.cards.Past.lightExpression,
-              shadowExpression: parsedResponse.cards.Past.shadowExpression,
-              invitation: parsedResponse.cards.Past.invitation || "",
-              warning: parsedResponse.cards.Past.warning || "",
+              symbols: safeArrayOfStrings(parsedResponse.cards?.Past?.symbols),
+              lightExpression: parsedResponse.cards?.Past?.lightExpression || "",
+              shadowExpression: parsedResponse.cards?.Past?.shadowExpression || "",
+              invitation: parsedResponse.cards?.Past?.invitation || "",
+              warning: parsedResponse.cards?.Past?.warning || "",
               supportedMeanings: [],
               unsupportedMeanings: [],
-              tarotResonances: parsedResponse.cards.Past.tarotResonances,
-              visualObservations: parsedResponse.cards.Past.visualObservations,
-              promptObservations: parsedResponse.cards.Past.promptObservations,
+              tarotResonances: safeArrayOfStrings(parsedResponse.cards?.Past?.tarotResonances),
+              visualObservations: safeArrayOfStrings(parsedResponse.cards?.Past?.visualObservations),
+              promptObservations: safeArrayOfStrings(parsedResponse.cards?.Past?.promptObservations),
             },
             selectedId: selectedIds[0],
             role: "Past",
@@ -505,18 +517,18 @@ READING VOICE AND WRITING STYLE RULES (CRITICAL):
                 from: parsedResponse.cards.Present.transformation.from,
                 to: parsedResponse.cards.Present.transformation.to,
               },
-              primaryArchetypes: parsedResponse.cards.Present.primaryArchetypes,
+              primaryArchetypes: safeArrayOfStrings(parsedResponse.cards?.Present?.primaryArchetypes),
               secondaryArchetypes: [],
-              symbols: parsedResponse.cards.Present.symbols,
-              lightExpression: parsedResponse.cards.Present.lightExpression,
-              shadowExpression: parsedResponse.cards.Present.shadowExpression,
-              invitation: parsedResponse.cards.Present.invitation || "",
-              warning: parsedResponse.cards.Present.warning || "",
+              symbols: safeArrayOfStrings(parsedResponse.cards?.Present?.symbols),
+              lightExpression: parsedResponse.cards?.Present?.lightExpression || "",
+              shadowExpression: parsedResponse.cards?.Present?.shadowExpression || "",
+              invitation: parsedResponse.cards?.Present?.invitation || "",
+              warning: parsedResponse.cards?.Present?.warning || "",
               supportedMeanings: [],
               unsupportedMeanings: [],
-              tarotResonances: parsedResponse.cards.Present.tarotResonances,
-              visualObservations: parsedResponse.cards.Present.visualObservations,
-              promptObservations: parsedResponse.cards.Present.promptObservations,
+              tarotResonances: safeArrayOfStrings(parsedResponse.cards?.Present?.tarotResonances),
+              visualObservations: safeArrayOfStrings(parsedResponse.cards?.Present?.visualObservations),
+              promptObservations: safeArrayOfStrings(parsedResponse.cards?.Present?.promptObservations),
             },
             selectedId: selectedIds[1],
             role: "Present",
@@ -536,18 +548,18 @@ READING VOICE AND WRITING STYLE RULES (CRITICAL):
                 from: parsedResponse.cards.Future.transformation.from,
                 to: parsedResponse.cards.Future.transformation.to,
               },
-              primaryArchetypes: parsedResponse.cards.Future.primaryArchetypes,
+              primaryArchetypes: safeArrayOfStrings(parsedResponse.cards?.Future?.primaryArchetypes),
               secondaryArchetypes: [],
-              symbols: parsedResponse.cards.Future.symbols,
-              lightExpression: parsedResponse.cards.Future.lightExpression,
-              shadowExpression: parsedResponse.cards.Future.shadowExpression,
-              invitation: parsedResponse.cards.Future.invitation || "",
-              warning: parsedResponse.cards.Future.warning || "",
+              symbols: safeArrayOfStrings(parsedResponse.cards?.Future?.symbols),
+              lightExpression: parsedResponse.cards?.Future?.lightExpression || "",
+              shadowExpression: parsedResponse.cards?.Future?.shadowExpression || "",
+              invitation: parsedResponse.cards?.Future?.invitation || "",
+              warning: parsedResponse.cards?.Future?.warning || "",
               supportedMeanings: [],
               unsupportedMeanings: [],
-              tarotResonances: parsedResponse.cards.Future.tarotResonances,
-              visualObservations: parsedResponse.cards.Future.visualObservations,
-              promptObservations: parsedResponse.cards.Future.promptObservations,
+              tarotResonances: safeArrayOfStrings(parsedResponse.cards?.Future?.tarotResonances),
+              visualObservations: safeArrayOfStrings(parsedResponse.cards?.Future?.visualObservations),
+              promptObservations: safeArrayOfStrings(parsedResponse.cards?.Future?.promptObservations),
             },
             selectedId: selectedIds[2],
             role: "Future",

@@ -137,21 +137,33 @@ export default function ReadingCard({ card }: ReadingCardProps) {
                   <div className="space-y-2">
                     <span className="text-neutral-500 font-mono block">PRIMARY ARCHETYPES</span>
                     <div className="flex flex-wrap gap-1.5">
-                      {tableau.primaryArchetypes.map((arch) => (
-                        <span key={arch} className="px-2 py-1 bg-neutral-900 border border-neutral-850 rounded text-neutral-300">
-                          {arch}
+                      {Array.isArray(tableau.primaryArchetypes) ? (
+                        tableau.primaryArchetypes.map((arch) => (
+                          <span key={arch} className="px-2 py-1 bg-neutral-900 border border-neutral-850 rounded text-neutral-300">
+                            {arch}
+                          </span>
+                        ))
+                      ) : tableau.primaryArchetypes ? (
+                        <span className="px-2 py-1 bg-neutral-900 border border-neutral-850 rounded text-neutral-300">
+                          {tableau.primaryArchetypes}
                         </span>
-                      ))}
+                      ) : null}
                     </div>
                   </div>
                   <div className="space-y-2">
                     <span className="text-neutral-500 font-mono block">KEY SYMBOLS</span>
                     <div className="flex flex-wrap gap-1.5">
-                      {tableau.symbols.map((sym) => (
-                        <span key={sym} className="px-2 py-1 bg-neutral-900 border border-neutral-850 rounded text-neutral-300">
-                          {sym}
+                      {Array.isArray(tableau.symbols) ? (
+                        tableau.symbols.map((sym) => (
+                          <span key={sym} className="px-2 py-1 bg-neutral-900 border border-neutral-850 rounded text-neutral-300">
+                            {sym}
+                          </span>
+                        ))
+                      ) : tableau.symbols ? (
+                        <span className="px-2 py-1 bg-neutral-900 border border-neutral-850 rounded text-neutral-300">
+                          {tableau.symbols}
                         </span>
-                      ))}
+                      ) : null}
                     </div>
                   </div>
                 </div>
@@ -172,12 +184,16 @@ export default function ReadingCard({ card }: ReadingCardProps) {
                 <div className="text-xs bg-neutral-900/20 p-3 rounded border border-neutral-900/40">
                   <span className="text-neutral-500 font-mono block mb-1">INTERPRETIVE RESONANCES (TAROT)</span>
                   <div className="flex flex-wrap gap-2 text-gold-300 font-light">
-                    {tableau.tarotResonances.map((res, i) => (
-                      <span key={res}>
-                        {res}
-                        {i < tableau.tarotResonances.length - 1 && <span className="text-neutral-800 ml-2">|</span>}
-                      </span>
-                    ))}
+                    {Array.isArray(tableau.tarotResonances) ? (
+                      tableau.tarotResonances.map((res, i) => (
+                        <span key={res}>
+                          {res}
+                          {i < tableau.tarotResonances.length - 1 && <span className="text-neutral-800 ml-2">|</span>}
+                        </span>
+                      ))
+                    ) : tableau.tarotResonances ? (
+                      <span>{tableau.tarotResonances}</span>
+                    ) : null}
                   </div>
                 </div>
 
@@ -188,9 +204,13 @@ export default function ReadingCard({ card }: ReadingCardProps) {
                       <Eye className="w-3.5 h-3.5" /> Visual Composition Notes
                     </span>
                     <ul className="list-disc list-inside text-neutral-400 space-y-1 font-light pl-1">
-                      {tableau.visualObservations.map((obs, i) => (
-                        <li key={i}>{obs}</li>
-                      ))}
+                      {Array.isArray(tableau.visualObservations) ? (
+                        tableau.visualObservations.map((obs, i) => (
+                          <li key={i}>{obs}</li>
+                        ))
+                      ) : tableau.visualObservations ? (
+                        <li>{tableau.visualObservations}</li>
+                      ) : null}
                     </ul>
                   </div>
                   <div className="space-y-1">
@@ -198,9 +218,13 @@ export default function ReadingCard({ card }: ReadingCardProps) {
                       <FileText className="w-3.5 h-3.5" /> Generation Prompt Observations
                     </span>
                     <ul className="list-disc list-inside text-neutral-400 space-y-1 font-light pl-1">
-                      {tableau.promptObservations.map((obs, i) => (
-                        <li key={i}>{obs}</li>
-                      ))}
+                      {Array.isArray(tableau.promptObservations) ? (
+                        tableau.promptObservations.map((obs, i) => (
+                          <li key={i}>{obs}</li>
+                        ))
+                      ) : tableau.promptObservations ? (
+                        <li>{tableau.promptObservations}</li>
+                      ) : null}
                     </ul>
                   </div>
                 </div>

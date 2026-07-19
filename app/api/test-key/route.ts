@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 export async function GET(req: NextRequest) {
   try {
     const apiKey = process.env.OPENROUTER_API_KEY;
-    const model = process.env.OPENROUTER_MODEL || "google/gemma-4-31b-it:free";
+    const model = process.env.OPENROUTER_MODEL || "moonshotai/kimi-k2.6";
 
     if (!apiKey) {
       return NextResponse.json({
