@@ -9,6 +9,23 @@ import ReadingSynthesis from "../../components/ReadingSynthesis";
 import { MessageSquare, Compass, Loader2 } from "lucide-react";
 import Link from "next/link";
 
+const base64ToUint8Array = (base64: string): Uint8Array => {
+  const binaryString = atob(base64);
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
+};
+
+const decompressString = async (base64: string): Promise<string> => {
+  const bytes = base64ToUint8Array(base64);
+  const stream = new Blob([bytes]).stream();
+  const decompressedStream = stream.pipeThrough(new DecompressionStream("deflate"));
+  return await new Response(decompressedStream).text();
+};
+
 function ShareContent() {
   const searchParams = useSearchParams();
   const [result, setResult] = useState<ReadingResult | null>(null);
@@ -21,40 +38,43 @@ function ShareContent() {
       return;
     }
 
-    try {
-      // Decode Base64 UTF-8 string
-      const jsonStr = decodeURIComponent(atob(dataParam));
-      const payload = JSON.parse(jsonStr);
+    const decompress = async () => {
+      try {
+        const jsonStr = await decompressString(dataParam);
+        const payload = JSON.parse(jsonStr);
 
-      const cards: Partial<Record<PositionRole, CardReading>> = {};
-      for (const [role, compCard] of Object.entries(payload.c)) {
-        if (compCard) {
-          const tableau = getTableauById((compCard as any).id);
-          cards[role as PositionRole] = {
-            tableau,
-            selectedId: (compCard as any).id,
-            role: role as PositionRole,
-            contextualInterpretation: (compCard as any).ci,
-            positionalInterpretation: (compCard as any).pi,
-          };
+        const cards: Partial<Record<PositionRole, CardReading>> = {};
+        for (const [role, compCard] of Object.entries(payload.c)) {
+          if (compCard) {
+            const tableau = getTableauById((compCard as any).id);
+            cards[role as PositionRole] = {
+              tableau,
+              selectedId: (compCard as any).id,
+              role: role as PositionRole,
+              contextualInterpretation: (compCard as any).ci,
+              positionalInterpretation: (compCard as any).pi,
+            };
+          }
         }
+
+        const decodedResult: ReadingResult = {
+          question: payload.q,
+          relationshipAnalysis: payload.ra,
+          synthesis: payload.sy,
+          whatSees: payload.ws,
+          whatAsks: payload.wa,
+          invitation: payload.in,
+          cards,
+        };
+
+        setResult(decodedResult);
+      } catch (err) {
+        console.error("Failed to decode share link:", err);
+        setError("The share link is invalid or corrupted.");
       }
+    };
 
-      const decodedResult: ReadingResult = {
-        question: payload.q,
-        relationshipAnalysis: payload.ra,
-        synthesis: payload.sy,
-        whatSees: payload.ws,
-        whatAsks: payload.wa,
-        invitation: payload.in,
-        cards,
-      };
-
-      setResult(decodedResult);
-    } catch (err) {
-      console.error("Failed to decode share link:", err);
-      setError("The share link is invalid or corrupted.");
-    }
+    decompress();
   }, [searchParams]);
 
   const handleRestart = () => {

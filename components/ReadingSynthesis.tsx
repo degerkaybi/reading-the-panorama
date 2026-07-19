@@ -13,6 +13,22 @@ export default function ReadingSynthesis({ result, onRestart }: ReadingSynthesis
   const [shareState, setShareState] = useState<"idle" | "loading" | "copied" | "error">("idle");
   const [shareUrl, setShareUrl] = useState<string | null>(null);
 
+  const uint8ArrayToBase64 = (arr: Uint8Array): string => {
+    let binary = "";
+    const len = arr.byteLength;
+    for (let i = 0; i < len; i++) {
+      binary += String.fromCharCode(arr[i]);
+    }
+    return btoa(binary);
+  };
+
+  const compressString = async (str: string): Promise<string> => {
+    const stream = new Blob([str]).stream();
+    const compressedStream = stream.pipeThrough(new CompressionStream("deflate"));
+    const buffer = await new Response(compressedStream).arrayBuffer();
+    return uint8ArrayToBase64(new Uint8Array(buffer));
+  };
+
   const copyToClipboard = async (text: string): Promise<boolean> => {
     if (typeof navigator !== "undefined" && navigator.clipboard && navigator.clipboard.writeText) {
       try {
@@ -81,12 +97,12 @@ export default function ReadingSynthesis({ result, onRestart }: ReadingSynthesis
         c: cardsPayload,
       };
 
-      // 2. Serialize and Base64-encode (with UTF-8 safety)
+      // 2. Serialize and Compress (Deflate) -> Base64
       const jsonStr = JSON.stringify(payload);
-      const base64Str = btoa(encodeURIComponent(jsonStr));
+      const base64Str = await compressString(jsonStr);
 
-      // 3. Form the sharing URL using the query parameter
-      const url = `${window.location.origin}/share?data=${base64Str}`;
+      // 3. Form the sharing URL using the query parameter (URL safe encoded)
+      const url = `${window.location.origin}/share?data=${encodeURIComponent(base64Str)}`;
       setShareUrl(url);
 
       const copied = await copyToClipboard(url);
