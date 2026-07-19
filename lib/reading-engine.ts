@@ -59,10 +59,23 @@ export function getCardDateLabel(dayId: number): string {
   return `${dd} ${mm} ${yyyy}`;
 }
 
+export function getCardDateSlashLabel(dayId: number): string {
+  const genesisDate = new Date(GENESIS_DATE_STR);
+  const offsetDays = dayId === 0 ? 0 : dayId - 1;
+  const targetDate = new Date(genesisDate.getTime() + offsetDays * 24 * 60 * 60 * 1000);
+  
+  const dd = String(targetDate.getUTCDate()).padStart(2, "0");
+  const mm = String(targetDate.getUTCMonth() + 1).padStart(2, "0");
+  const yy = String(targetDate.getUTCFullYear()).slice(-2);
+  
+  return `${dd}/${mm}/${yy}`;
+}
+
 // Helper to get a tableau based on selected ID (0-90)
-export function getTableauById(id: number): PanoramaTableau & { dateName: string } {
+export function getTableauById(id: number): PanoramaTableau & { dateName: string; dateSlashLabel: string; isPredefined: boolean } {
   // Try to find a template with the exact ID first
   let template = samplePanoramas.find((p) => p.id === id);
+  const isPredefined = !!template;
 
   if (!template) {
     // Deterministically map to one of our 6 templates using modulo of original ID
@@ -77,6 +90,7 @@ export function getTableauById(id: number): PanoramaTableau & { dateName: string
 
   // Get the human-readable date name for this card
   const dateName = getCardDateLabel(safeSelectedId);
+  const dateSlashLabel = getCardDateSlashLabel(safeSelectedId);
 
   // Return a cloned version with the selected ID, date name, and live CDN image URL
   return {
@@ -84,6 +98,8 @@ export function getTableauById(id: number): PanoramaTableau & { dateName: string
     id: id,
     imageUrl: liveImageUrl,
     dateName: dateName,
+    dateSlashLabel: dateSlashLabel,
+    isPredefined: isPredefined,
     title: `Panorama ${dateName}`,
   };
 }

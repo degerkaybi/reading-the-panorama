@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Compass, ArrowLeft, ArrowRight, MessageSquare, RotateCcw } from "lucide-react";
+import { Compass, ArrowLeft, ArrowRight, MessageSquare, RotateCcw, Clock } from "lucide-react";
 import Link from "next/link";
 
 // Components
@@ -17,6 +17,25 @@ import { ReadingResult } from "../../types/reading";
 
 type FlowState = "question" | "shuffling" | "selection" | "reveal" | "synthesizing" | "result";
 
+interface RateLimitInfo {
+  isBlocked: boolean;
+  timeLeftMs: number;
+}
+
+function getRateLimitInfo(): RateLimitInfo {
+  return { isBlocked: false, timeLeftMs: 0 };
+}
+
+function formatTimeLeft(ms: number): string {
+  const totalSeconds = Math.floor(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  
+  const pad = (num: number) => String(num).padStart(2, "0");
+  return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+}
+
 export default function ReadingFlowPage() {
   const [flowState, setFlowState] = useState<FlowState>("question");
   const [readingMode, setReadingMode] = useState<"three" | "single">("single");
@@ -28,6 +47,17 @@ export default function ReadingFlowPage() {
   const [readingSource, setReadingSource] = useState<"live" | null>(null);
   const [usedModel, setUsedModel] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [rateLimitInfo, setRateLimitInfo] = useState<RateLimitInfo>({ isBlocked: false, timeLeftMs: 0 });
+
+  const updateRateLimitState = () => {
+    setRateLimitInfo(getRateLimitInfo());
+  };
+
+  useEffect(() => {
+    updateRateLimitState();
+    const interval = setInterval(updateRateLimitState, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Transition: Question -> Shuffling
   const handleQuestionSubmit = (e?: React.FormEvent) => {
@@ -118,6 +148,9 @@ export default function ReadingFlowPage() {
               } catch (e) {
                 console.error("Failed to save selectedIds to localStorage:", e);
               }
+
+              // Update local state immediately
+              setRateLimitInfo(getRateLimitInfo());
               
               setFlowState("result");
               return;
@@ -125,7 +158,11 @@ export default function ReadingFlowPage() {
               const reason = (data && data.reason) || "unknown";
               console.error("API route returned success: false. Reason:", reason);
               if (isMounted) {
-                setApiError(`AI okuma başarısız oldu (${reason}). Lütfen tekrar deneyin.`);
+                if (reason === "RATE_LIMITED") {
+                  setApiError("Okuma limitinize ulaştınız. Her 5 saatte en fazla 3 okuma hakkınız bulunmaktadır.");
+                } else {
+                  setApiError(`AI okuma başarısız oldu (${reason}). Lütfen tekrar deneyin.`);
+                }
                 setFlowState("result");
               }
             }
@@ -251,43 +288,68 @@ export default function ReadingFlowPage() {
               </div>
             </div>
 
-            <form onSubmit={handleQuestionSubmit} className="space-y-6">
-              <div className="relative">
-                <textarea
-                  value={question}
-                  onChange={(e) => setQuestion(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && e.shiftKey) {
-                      e.preventDefault();
-                      if (question.trim()) {
-                        handleQuestionSubmit();
-                      }
-                    }
-                  }}
-                  rows={4}
-                  placeholder="The more details you provide, the more accurate results you will get for your interpretation..."
-                  className="w-full px-6 py-5 bg-neutral-900/40 hover:bg-neutral-900/60 focus:bg-neutral-900/80 rounded-xl border border-neutral-800 focus:border-gold-500/50 focus:ring-0 focus:outline-none text-neutral-200 text-sm font-light leading-relaxed placeholder-neutral-600 transition-all duration-300 resize-none"
-                />
-                <div className="absolute bottom-4 right-4 text-[10px] font-mono text-neutral-600">
-                  Press Shift+Enter to send
+            {rateLimitInfo.isBlocked ? (
+              <div className="glass-panel p-8 rounded-2xl border border-gold-500/20 bg-neutral-900/10 text-center space-y-6 animate-fade-in shadow-[0_0_30px_rgba(190,144,46,0.05)]">
+                <div className="w-16 h-16 rounded-full border border-gold-500/20 mx-auto flex items-center justify-center bg-gold-950/20 text-gold-400">
+                  <Clock className="w-8 h-8 animate-pulse" />
                 </div>
+                <div className="space-y-2">
+                  <h3 className="text-lg font-serif text-neutral-100 font-medium">Reading Limit Reached / Limit Aşıldı</h3>
+                  <p className="text-xs text-neutral-400 font-light leading-relaxed">
+                    To keep the reading experience intentional, each browser is limited to 3 inquiries per 5 hours.<br/>
+                    Okuma deneyiminin derinliğini korumak için, her tarayıcı 5 saatte en fazla 3 okuma yapabilir.
+                  </p>
+                </div>
+                <div className="py-4 px-6 bg-neutral-950/60 rounded-xl border border-neutral-900 inline-block">
+                  <span className="text-[10px] uppercase tracking-widest text-neutral-500 block font-mono mb-1">Time Remaining / Kalan Süre</span>
+                  <span className="text-2xl font-mono text-gold-400 font-medium">
+                    {formatTimeLeft(rateLimitInfo.timeLeftMs)}
+                  </span>
+                </div>
+                <p className="text-[10px] text-neutral-500 italic">
+                  Please take this time to reflect on your previous readings.<br/>
+                  Lütfen bu süreyi önceki okumalarınızı tefekkür etmek için kullanın.
+                </p>
               </div>
+            ) : (
+              <form onSubmit={handleQuestionSubmit} className="space-y-6">
+                <div className="relative">
+                  <textarea
+                    value={question}
+                    onChange={(e) => setQuestion(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && e.shiftKey) {
+                        e.preventDefault();
+                        if (question.trim()) {
+                          handleQuestionSubmit();
+                        }
+                      }
+                    }}
+                    rows={4}
+                    placeholder="The more details you provide, the more accurate results you will get for your interpretation..."
+                    className="w-full px-6 py-5 bg-neutral-900/40 hover:bg-neutral-900/60 focus:bg-neutral-900/80 rounded-xl border border-neutral-800 focus:border-gold-500/50 focus:ring-0 focus:outline-none text-neutral-200 text-sm font-light leading-relaxed placeholder-neutral-600 transition-all duration-300 resize-none"
+                  />
+                  <div className="absolute bottom-4 right-4 text-[10px] font-mono text-neutral-600">
+                    Press Shift+Enter to send
+                  </div>
+                </div>
 
-              <div className="flex flex-col items-center gap-4">
-                <button
-                  type="submit"
-                  disabled={!question.trim()}
-                  className={`w-full sm:w-auto px-8 py-3.5 rounded-full text-xs uppercase tracking-widest font-semibold flex items-center justify-center gap-2 transition-all duration-700 ${
-                    question.trim()
-                      ? "bg-gold-500 hover:bg-gold-400 text-neutral-950 cursor-pointer shadow-[0_0_20px_rgba(190,144,46,0.15)]"
-                      : "bg-neutral-900 text-neutral-500 border border-neutral-850 cursor-not-allowed"
-                  }`}
-                >
-                  Continue with Question
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-            </form>
+                <div className="flex flex-col items-center gap-4">
+                  <button
+                    type="submit"
+                    disabled={!question.trim()}
+                    className={`w-full sm:w-auto px-8 py-3.5 rounded-full text-xs uppercase tracking-widest font-semibold flex items-center justify-center gap-2 transition-all duration-700 ${
+                      question.trim()
+                        ? "bg-gold-500 hover:bg-gold-400 text-neutral-950 cursor-pointer shadow-[0_0_20px_rgba(190,144,46,0.15)]"
+                        : "bg-neutral-900 text-neutral-500 border border-neutral-850 cursor-not-allowed"
+                    }`}
+                  >
+                    Continue with Question
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         )}
 
@@ -469,8 +531,8 @@ export default function ReadingFlowPage() {
                 {readingResult.question ? "Your Guided Reading" : "The Silent Panorama Assembly"}
               </h1>
               
-              {/* Reading Source Badge - Hidden from UI */}
-              {false && readingSource === "live" && (
+              {/* Reading Source Badge */}
+              {readingSource === "live" && (
                 <div className="flex justify-center mt-2">
                   <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[9px] font-mono font-semibold uppercase tracking-wider text-emerald-400 bg-emerald-950/30 border border-emerald-500/20 rounded-full shadow-[0_0_15px_rgba(16,185,129,0.05)]">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />

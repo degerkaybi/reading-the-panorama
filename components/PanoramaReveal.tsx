@@ -2,6 +2,7 @@ import React from "react";
 import { ArrowRight } from "lucide-react";
 import { PanoramaTableau } from "../types/panorama";
 import { PositionRole } from "../types/reading";
+import { getCardDateSlashLabel } from "../lib/reading-engine";
 
 interface PanoramaRevealProps {
   selectedIds: number[];
@@ -80,7 +81,7 @@ export default function PanoramaReveal({
                 <div className="absolute bottom-0 left-0 right-0 p-4 flex flex-col space-y-1.5 z-10">
                   <div className="flex justify-between items-center text-[9px] font-mono text-gold-400">
                     <span className="font-semibold">{role.toUpperCase()}</span>
-                    <span>#{String(id).padStart(2, "0")}</span>
+                    <span>{getCardDateSlashLabel(id)}</span>
                   </div>
                   <h3 className="text-base font-serif font-light text-white leading-tight">
                     {tableau.title}

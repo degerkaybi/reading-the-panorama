@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { CardReading } from "../types/reading";
 import { Info, Compass, ChevronDown, ChevronUp, Eye, FileText, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { getCardDateSlashLabel } from "../lib/reading-engine";
 
 interface ReadingCardProps {
   card: CardReading;
@@ -59,8 +60,8 @@ export default function ReadingCard({ card }: ReadingCardProps) {
           {/* ID indicator bottom-left */}
           <div className="absolute bottom-6 left-6 flex flex-col">
             <span className="text-[10px] font-mono text-neutral-400">PANORAMA</span>
-            <span className="text-3xl font-serif text-white font-light text-glow">
-              #{String(selectedId).padStart(2, "0")}
+            <span className="text-2xl font-serif text-white font-light text-glow">
+              {getCardDateSlashLabel(selectedId)}
             </span>
           </div>
         </div>

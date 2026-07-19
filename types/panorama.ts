@@ -24,4 +24,6 @@ export interface PanoramaTableau {
   tarotResonances: string[];
   visualObservations: string[];
   promptObservations: string[];
+  dateSlashLabel?: string;
+  isPredefined?: boolean;
 }
