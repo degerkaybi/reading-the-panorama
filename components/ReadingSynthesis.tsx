@@ -13,22 +13,6 @@ export default function ReadingSynthesis({ result, onRestart }: ReadingSynthesis
   const [shareState, setShareState] = useState<"idle" | "loading" | "copied" | "error">("idle");
   const [shareUrl, setShareUrl] = useState<string | null>(null);
 
-  const uint8ArrayToBase64 = (arr: Uint8Array): string => {
-    let binary = "";
-    const len = arr.byteLength;
-    for (let i = 0; i < len; i++) {
-      binary += String.fromCharCode(arr[i]);
-    }
-    return btoa(binary);
-  };
-
-  const compressString = async (str: string): Promise<string> => {
-    const stream = new Blob([str]).stream();
-    const compressedStream = stream.pipeThrough(new CompressionStream("deflate"));
-    const buffer = await new Response(compressedStream).arrayBuffer();
-    return uint8ArrayToBase64(new Uint8Array(buffer));
-  };
-
   const copyToClipboard = async (text: string): Promise<boolean> => {
     if (typeof navigator !== "undefined" && navigator.clipboard && navigator.clipboard.writeText) {
       try {
@@ -75,7 +59,7 @@ export default function ReadingSynthesis({ result, onRestart }: ReadingSynthesis
 
     setShareState("loading");
     try {
-      // 1. Extract only the essential dynamic fields to minimize URL size
+      // 1. Extract only the essential dynamic fields to minimize storage size
       const cardsPayload: Record<string, any> = {};
       for (const [role, card] of Object.entries(result.cards)) {
         if (card) {
@@ -97,12 +81,24 @@ export default function ReadingSynthesis({ result, onRestart }: ReadingSynthesis
         c: cardsPayload,
       };
 
-      // 2. Serialize and Compress (Deflate) -> Base64
-      const jsonStr = JSON.stringify(payload);
-      const base64Str = await compressString(jsonStr);
+      // 2. Post the payload to /api/share
+      const response = await fetch("/api/share", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
 
-      // 3. Form the sharing URL using the query parameter (URL safe encoded)
-      const url = `${window.location.origin}/share?data=${encodeURIComponent(base64Str)}`;
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to share: Status ${response.status} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      
+      // 3. Form the short URL using the returned ID
+      const url = `${window.location.origin}/share/${data.id}`;
       setShareUrl(url);
 
       const copied = await copyToClipboard(url);
@@ -110,8 +106,7 @@ export default function ReadingSynthesis({ result, onRestart }: ReadingSynthesis
         setShareState("copied");
         setTimeout(() => setShareState("idle"), 2000);
       } else {
-        // Still mark as copied (or show success) because we successfully generated
-        // the share link which is now displayed on the screen for them.
+        // Still mark as copied because the URL is now displayed on screen
         setShareState("copied");
         setTimeout(() => setShareState("idle"), 2000);
       }
