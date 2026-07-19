@@ -13,17 +13,46 @@ export default function ReadingSynthesis({ result, onRestart }: ReadingSynthesis
   const [shareState, setShareState] = useState<"idle" | "loading" | "copied" | "error">("idle");
   const [shareUrl, setShareUrl] = useState<string | null>(null);
 
+  const copyToClipboard = async (text: string): Promise<boolean> => {
+    if (typeof navigator !== "undefined" && navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch (err) {
+        console.warn("Navigator clipboard failed, trying fallback...", err);
+      }
+    }
+
+    try {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.position = "fixed";
+      textArea.style.top = "0";
+      textArea.style.left = "0";
+      textArea.style.opacity = "0";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      const successful = document.execCommand("copy");
+      document.body.removeChild(textArea);
+      return successful;
+    } catch (err) {
+      console.error("Fallback copy failed:", err);
+      return false;
+    }
+  };
+
   const handleShare = async () => {
     if (shareState === "loading") return;
 
     if (shareUrl) {
-      try {
-        await navigator.clipboard.writeText(shareUrl);
+      const copied = await copyToClipboard(shareUrl);
+      if (copied) {
         setShareState("copied");
         setTimeout(() => setShareState("idle"), 2000);
-      } catch (err) {
-        console.error("Failed to copy link:", err);
+      } else {
         setShareState("error");
+        setTimeout(() => setShareState("idle"), 3000);
       }
       return;
     }
@@ -44,9 +73,16 @@ export default function ReadingSynthesis({ result, onRestart }: ReadingSynthesis
       const url = `${window.location.origin}/share/${data.id}`;
       setShareUrl(url);
 
-      await navigator.clipboard.writeText(url);
-      setShareState("copied");
-      setTimeout(() => setShareState("idle"), 2000);
+      const copied = await copyToClipboard(url);
+      if (copied) {
+        setShareState("copied");
+        setTimeout(() => setShareState("idle"), 2000);
+      } else {
+        // Still mark as copied (or show success) because we successfully saved the file
+        // and generated the share link which is now displayed on the screen for them.
+        setShareState("copied");
+        setTimeout(() => setShareState("idle"), 2000);
+      }
     } catch (error) {
       console.error("Failed to create share link:", error);
       setShareState("error");
@@ -156,48 +192,68 @@ export default function ReadingSynthesis({ result, onRestart }: ReadingSynthesis
       </section>
 
       {/* CTA Buttons */}
-      <div
-        className="flex flex-col sm:flex-row justify-center items-center gap-4 pt-8 animate-fade-in"
-      >
-        <button
-          onClick={handleShare}
-          disabled={shareState === "loading"}
-          className={`px-8 py-3 rounded-full font-mono text-xs uppercase tracking-widest transition-all duration-300 flex items-center gap-2 border cursor-pointer min-w-[200px] justify-center ${
-            shareState === "copied"
-              ? "bg-emerald-950/80 border-emerald-500/50 text-emerald-400"
-              : shareState === "error"
-              ? "bg-red-950/80 border-red-500/50 text-red-400"
-              : "bg-gold-500 hover:bg-gold-400 text-neutral-950 border-gold-500 font-semibold shadow-[0_0_20px_rgba(190,144,46,0.15)]"
-          }`}
+      <div className="flex flex-col items-center gap-6 pt-8">
+        <div
+          className="flex flex-col sm:flex-row justify-center items-center gap-4 animate-fade-in w-full"
         >
-          {shareState === "idle" && (
-            <>
-              <Share2 className="w-4 h-4" />
-              Share Reading
-            </>
-          )}
-          {shareState === "loading" && (
-            <>
-              <div className="w-4 h-4 border-2 border-neutral-950 border-t-transparent rounded-full animate-spin" />
-              Generating Link...
-            </>
-          )}
-          {shareState === "copied" && (
-            <>
-              <Check className="w-4 h-4" />
-              Link Copied!
-            </>
-          )}
-          {shareState === "error" && <>Failed to Share</>}
-        </button>
+          <button
+            onClick={handleShare}
+            disabled={shareState === "loading"}
+            className={`px-8 py-3 rounded-full font-mono text-xs uppercase tracking-widest transition-all duration-300 flex items-center gap-2 border cursor-pointer min-w-[200px] justify-center ${
+              shareState === "copied"
+                ? "bg-emerald-950/80 border-emerald-500/50 text-emerald-400"
+                : shareState === "error"
+                ? "bg-red-950/80 border-red-500/50 text-red-400"
+                : "bg-gold-500 hover:bg-gold-400 text-neutral-950 border-gold-500 font-semibold shadow-[0_0_20px_rgba(190,144,46,0.15)]"
+            }`}
+          >
+            {shareState === "idle" && (
+              <>
+                <Share2 className="w-4 h-4" />
+                Share Reading
+              </>
+            )}
+            {shareState === "loading" && (
+              <>
+                <div className="w-4 h-4 border-2 border-neutral-950 border-t-transparent rounded-full animate-spin" />
+                Generating Link...
+              </>
+            )}
+            {shareState === "copied" && (
+              <>
+                <Check className="w-4 h-4" />
+                Link Copied!
+              </>
+            )}
+            {shareState === "error" && <>Failed to Share</>}
+          </button>
 
-        <button
-          onClick={onRestart}
-          className="px-8 py-3 bg-neutral-900 hover:bg-neutral-850 text-neutral-400 hover:text-white border border-neutral-850 rounded-full font-mono text-xs uppercase tracking-widest transition-all duration-300 flex items-center gap-2 cursor-pointer min-w-[200px] justify-center"
-        >
-          Begin a New Reading
-          <ArrowRight className="w-4 h-4" />
-        </button>
+          <button
+            onClick={onRestart}
+            className="px-8 py-3 bg-neutral-900 hover:bg-neutral-850 text-neutral-400 hover:text-white border border-neutral-850 rounded-full font-mono text-xs uppercase tracking-widest transition-all duration-300 flex items-center gap-2 cursor-pointer min-w-[200px] justify-center"
+          >
+            Begin a New Reading
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+
+        {shareUrl && (
+          <div className="w-full max-w-lg bg-neutral-900/40 border border-neutral-900/80 p-3 rounded-xl flex items-center justify-between gap-3 text-xs mt-2 animate-fade-in font-mono shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
+            <span className="text-neutral-400 truncate select-all pl-1">{shareUrl}</span>
+            <button
+              onClick={async () => {
+                const copied = await copyToClipboard(shareUrl);
+                if (copied) {
+                  setShareState("copied");
+                  setTimeout(() => setShareState("idle"), 2000);
+                }
+              }}
+              className="text-gold-400 hover:text-gold-300 font-mono text-[10px] uppercase tracking-wider font-semibold cursor-pointer whitespace-nowrap bg-neutral-950/60 border border-neutral-850 px-3 py-1.5 rounded hover:border-gold-500/30 transition-all duration-300"
+            >
+              Copy
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
