@@ -265,7 +265,7 @@ export default function ReadingFlowPage() {
                     }
                   }}
                   rows={4}
-                  placeholder="Example: I have important decisions to make about my life and I need clarity..."
+                  placeholder="The more details you provide, the more accurate results you will get for your interpretation..."
                   className="w-full px-6 py-5 bg-neutral-900/40 hover:bg-neutral-900/60 focus:bg-neutral-900/80 rounded-xl border border-neutral-800 focus:border-gold-500/50 focus:ring-0 focus:outline-none text-neutral-200 text-sm font-light leading-relaxed placeholder-neutral-600 transition-all duration-300 resize-none"
                 />
                 <div className="absolute bottom-4 right-4 text-[10px] font-mono text-neutral-600">
