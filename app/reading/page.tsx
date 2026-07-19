@@ -12,7 +12,7 @@ import ReadingCard from "../../components/ReadingCard";
 import ReadingSynthesis from "../../components/ReadingSynthesis";
 
 // Reading Engine
-import { generateReading, getTableauById } from "../../lib/reading-engine";
+import { getTableauById } from "../../lib/reading-engine";
 import { ReadingResult } from "../../types/reading";
 
 type FlowState = "question" | "shuffling" | "selection" | "reveal" | "synthesizing" | "result";
@@ -25,8 +25,9 @@ export default function ReadingFlowPage() {
   const [shuffledIds, setShuffledIds] = useState<number[]>([]);
   const [isShufflingAnimating, setIsShufflingAnimating] = useState(false);
   const [readingResult, setReadingResult] = useState<ReadingResult | null>(null);
-  const [readingSource, setReadingSource] = useState<"live" | "local" | null>(null);
+  const [readingSource, setReadingSource] = useState<"live" | null>(null);
   const [usedModel, setUsedModel] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   // Transition: Question -> Shuffling
   const handleQuestionSubmit = (e?: React.FormEvent) => {
@@ -38,8 +39,21 @@ export default function ReadingFlowPage() {
   const triggerShuffle = () => {
     setIsShufflingAnimating(true);
     
-    // Generate shuffled list of 0-90
-    const arr = Array.from({ length: 91 }, (_, i) => i);
+    // Load previously selected card IDs from localStorage to exclude them
+    let excludedIds: number[] = [];
+    try {
+      const stored = localStorage.getItem("previousSelectedIds");
+      if (stored) {
+        excludedIds = JSON.parse(stored);
+      }
+    } catch (e) {
+      console.error("Failed to parse previousSelectedIds from localStorage:", e);
+    }
+
+    // Generate list of 0-90, excluding the previously selected IDs
+    const arr = Array.from({ length: 91 }, (_, i) => i).filter(id => !excludedIds.includes(id));
+    
+    // Shuffle the list
     for (let i = arr.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [arr[i], arr[j]] = [arr[j], arr[i]];
@@ -69,6 +83,7 @@ export default function ReadingFlowPage() {
       let isMounted = true;
 
       const performReading = async () => {
+        setApiError(null);
         try {
           console.log("Triggering reading API (/api/read) for question:", question, "selectedIds:", selectedIds);
           const response = await fetch("/api/read", {
@@ -92,34 +107,41 @@ export default function ReadingFlowPage() {
             }
             console.log("Response body from /api/read:", data);
             if (data && data.success && isMounted) {
-              console.log("Successfully generated online reading from Gemini API!");
+              console.log("Successfully generated live AI reading!");
               setReadingResult(data.reading);
               setReadingSource("live");
               setUsedModel(data.modelUsed || "openrouter/auto");
+              
+              // Exclude these selected IDs from appearing in the next shuffle session
+              try {
+                localStorage.setItem("previousSelectedIds", JSON.stringify(selectedIds));
+              } catch (e) {
+                console.error("Failed to save selectedIds to localStorage:", e);
+              }
+              
               setFlowState("result");
               return;
             } else {
-              console.warn("API route returned success: false. Reason:", (data && data.reason) || "unknown");
+              const reason = (data && data.reason) || "unknown";
+              console.error("API route returned success: false. Reason:", reason);
+              if (isMounted) {
+                setApiError(`AI okuma başarısız oldu (${reason}). Lütfen tekrar deneyin.`);
+                setFlowState("result");
+              }
             }
           } else {
-            console.warn("API route returned non-200 status:", response.status);
+            console.error("API route returned non-200 status:", response.status);
+            if (isMounted) {
+              setApiError(`Sunucu hatası (${response.status}). Lütfen tekrar deneyin.`);
+              setFlowState("result");
+            }
           }
-        } catch (err) {
-          console.warn("Failed to generate reading via Gemini API, using offline fallback:", err);
-        }
-
-        // Fallback: Generate local reading if API key is not configured or request fails
-        if (isMounted) {
-          console.log("Falling back to local/offline reading generation...");
-          const result = generateReading(question, selectedIds);
-          setReadingResult(result);
-          setReadingSource("local");
-          setUsedModel(null);
-          
-          // Show the nice transition screen for at least 2 seconds
-          setTimeout(() => {
-            if (isMounted) setFlowState("result");
-          }, 2000);
+        } catch (err: any) {
+          console.error("Failed to generate reading via AI API:", err);
+          if (isMounted) {
+            setApiError(`Bağlantı hatası: ${err?.message || "Bilinmeyen hata"}. Lütfen tekrar deneyin.`);
+            setFlowState("result");
+          }
         }
       };
 
@@ -138,7 +160,14 @@ export default function ReadingFlowPage() {
     setReadingResult(null);
     setReadingSource(null);
     setUsedModel(null);
+    setApiError(null);
     setFlowState("question");
+  };
+
+  const handleRetry = () => {
+    setApiError(null);
+    setReadingResult(null);
+    setFlowState("synthesizing");
   };
 
   return (
@@ -388,7 +417,44 @@ export default function ReadingFlowPage() {
           </div>
         )}
 
-        {/* STATE 5: RESULT */}
+        {/* STATE 5: RESULT - Error */}
+        {flowState === "result" && apiError && !readingResult && (
+          <div
+            key="error"
+            className="flex-grow flex flex-col justify-center items-center py-20 animate-fade-in"
+          >
+            <div className="space-y-6 text-center max-w-md px-6">
+              <div className="relative w-16 h-16 mx-auto flex items-center justify-center">
+                <div className="absolute inset-0 rounded-full border-2 border-red-900/40" />
+                <span className="text-2xl">⚠️</span>
+              </div>
+              <div className="space-y-3">
+                <span className="text-[10px] uppercase tracking-widest text-red-400 font-semibold font-mono">
+                  Okuma Başarısız
+                </span>
+                <p className="text-sm text-neutral-400 font-light leading-relaxed">
+                  {apiError}
+                </p>
+              </div>
+              <div className="flex gap-3 justify-center pt-4">
+                <button
+                  onClick={handleRetry}
+                  className="px-6 py-3 bg-gold-500 hover:bg-gold-400 text-neutral-950 font-sans font-semibold text-xs uppercase tracking-widest rounded-full shadow-[0_0_20px_rgba(190,144,46,0.2)] transition-all duration-300"
+                >
+                  Tekrar Dene
+                </button>
+                <button
+                  onClick={handleRestart}
+                  className="px-6 py-3 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 font-sans font-semibold text-xs uppercase tracking-widest rounded-full border border-neutral-800 transition-all duration-300"
+                >
+                  Baştan Başla
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* STATE 5: RESULT - Success */}
         {flowState === "result" && readingResult && (
           <div
             key="result"
@@ -403,20 +469,13 @@ export default function ReadingFlowPage() {
                 {readingResult.question ? "Your Guided Reading" : "The Silent Panorama Assembly"}
               </h1>
               
-              {/* Reading Source Badge */}
-              {readingSource && (
+              {/* Reading Source Badge - Live only */}
+              {readingSource === "live" && (
                 <div className="flex justify-center mt-2">
-                  {readingSource === "live" ? (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[9px] font-mono font-semibold uppercase tracking-wider text-emerald-400 bg-emerald-950/30 border border-emerald-500/20 rounded-full shadow-[0_0_15px_rgba(16,185,129,0.05)]">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      AI Live Reading ({usedModel})
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[9px] font-mono font-semibold uppercase tracking-wider text-amber-500 bg-amber-950/30 border border-amber-500/20 rounded-full shadow-[0_0_15px_rgba(245,158,11,0.05)]">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                      Local Fallback Reading (API offline/rate-limited)
-                    </span>
-                  )}
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[9px] font-mono font-semibold uppercase tracking-wider text-emerald-400 bg-emerald-950/30 border border-emerald-500/20 rounded-full shadow-[0_0_15px_rgba(16,185,129,0.05)]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    AI Live Reading ({usedModel})
+                  </span>
                 </div>
               )}
 
@@ -424,7 +483,7 @@ export default function ReadingFlowPage() {
                 <div className="inline-flex items-center gap-3 px-6 py-3 bg-neutral-900/40 rounded-xl border border-neutral-900/60 max-w-2xl text-left mt-2 mx-auto">
                   <MessageSquare className="w-4 h-4 text-gold-500 flex-shrink-0" />
                   <p className="text-xs text-neutral-300 font-light italic leading-normal">
-                    "{readingResult.question}"
+                    &quot;{readingResult.question}&quot;
                   </p>
                 </div>
               ) : (

@@ -2,7 +2,7 @@ import { PanoramaTableau } from "../types/panorama";
 
 export const samplePanoramas: PanoramaTableau[] = [
   {
-    id: 8,
+    id: 7,
     title: "The Threshold of Winds",
     imageUrl: "/images/panorama_08.png",
     originalPrompt: "A wide cinematic panoramic view of a massive stone archway standing alone on a windy cliff. Beneath it, a turbulent sea meets the dark basalt rocks. A figure in a billowing slate-gray cloak stands right before the arch, looking towards the vast open horizon. Golden-hour light streaks through heavy rainclouds.",
@@ -41,7 +41,7 @@ export const samplePanoramas: PanoramaTableau[] = [
     ]
   },
   {
-    id: 24,
+    id: 23,
     title: "The Silent Assembly",
     imageUrl: "/images/panorama_24.png",
     originalPrompt: "A panoramic watercolor sketch of a misty forest clearing where a circle of tall, slender figures made of woven birch bark stand motionless. In the center, a small glowing campfire burns with green embers. No one speaks. The atmosphere is thick with ancient memory and quiet focus.",
@@ -80,7 +80,7 @@ export const samplePanoramas: PanoramaTableau[] = [
     ]
   },
   {
-    id: 45,
+    id: 44,
     title: "The Sunken Library",
     imageUrl: "/images/panorama_45.png",
     originalPrompt: "A dark moody panoramic digital painting of a vast cathedral-like library partially submerged under calm, dark blue water. Sunbeams filter down from a skylight, illuminating floating books and water lilies growing along the submerged wooden shelves. A small wooden boat floats empty in the center.",
@@ -119,7 +119,7 @@ export const samplePanoramas: PanoramaTableau[] = [
     ]
   },
   {
-    id: 62,
+    id: 61,
     title: "The Weavers of Light",
     imageUrl: "/images/panorama_62.png",
     originalPrompt: "A vibrant panoramic scene of two figures standing on a wooden scaffold high in the night sky. They are using glowing golden threads to stitch together constellations, weaving stars into intricate geometric tapestries. Below them, a quiet, dark village sleeps.",
@@ -158,7 +158,7 @@ export const samplePanoramas: PanoramaTableau[] = [
     ]
   },
   {
-    id: 81,
+    id: 80,
     title: "The Public Revelation",
     imageUrl: "/images/panorama_81.png",
     originalPrompt: "A dramatic wide panorama of a town square in a stone city. A massive cloth veil covering a towering marble monument has just slipped, falling to the ground. A diverse crowd of townspeople stands in awe and debate, some shielding their eyes, others pointing. Golden beams of light strike the monument.",
@@ -197,7 +197,7 @@ export const samplePanoramas: PanoramaTableau[] = [
     ]
   },
   {
-    id: 89,
+    id: 88,
     title: "The Solitary Observatory",
     imageUrl: "/images/panorama_89.png",
     originalPrompt: "A breathtaking cinematic panorama of a high-tech copper telescope housed in an ancient stone dome high on a snowy peak. The night sky is filled with a swirling purple and blue nebula. A single astronomer sits in a wooden chair, charting coordinates on a glowing screen, surrounded by quiet warmth.",

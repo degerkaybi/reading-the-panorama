@@ -83,7 +83,7 @@ export default function PanoramaReveal({
                     <span>#{String(id).padStart(2, "0")}</span>
                   </div>
                   <h3 className="text-base font-serif font-light text-white leading-tight">
-                    {tableau.title.replace(/\(Tableau #\d+\)/, "")}
+                    {tableau.title}
                   </h3>
                   <div className="flex items-center gap-2">
                     <span className="text-[9px] text-neutral-400 uppercase tracking-widest font-mono">

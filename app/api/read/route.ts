@@ -17,6 +17,15 @@ function logDebug(message: string) {
 const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
 const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || "moonshotai/kimi-k2.6";
 
+// Models that support vision (image_url in messages)
+function isVisionCapable(model: string): boolean {
+  const visionModels = [
+    "gemini", "gpt-4o", "gpt-4-vision", "claude-3", "claude-4",
+    "qwen3-vl", "qwen2-vl", "llava", "pixtral"
+  ];
+  return visionModels.some(v => model.toLowerCase().includes(v));
+}
+
 function safeArrayOfStrings(val: any): string[] {
   if (Array.isArray(val)) {
     return val.filter(item => typeof item === "string");
@@ -67,11 +76,13 @@ export async function POST(req: NextRequest) {
     const cleanQuestion = question && question.trim() !== "" ? question.trim() : null;
     const isSingle = selectedIds.length === 1;
 
-    // Build tableau descriptions for the prompt (text-based, since Gemma 4 doesn't support vision)
-    const describeTableau = (tableau: any, id: number) => {
-      return `Tableau #${id}:
-- Title: ${tableau.title}
-- Image Description (Prompt): ${tableau.originalPrompt}
+    // Build tableau descriptions for the prompt — using date name as primary card identity
+    const describeTableau = (tableau: any) => {
+      const cardName = tableau.dateName || tableau.title;
+      return `Card: "${cardName}"
+- Card Date Name: ${cardName}
+- Live Card Image URL: ${tableau.imageUrl}
+- Symbolic Reference Description (approximate — use actual image as PRIMARY reference): ${tableau.originalPrompt}
 - Core Essence: ${tableau.coreEssence}
 - Core Verb: ${tableau.coreVerb}
 - Central Tension: ${tableau.centralTension}
@@ -95,7 +106,7 @@ export async function POST(req: NextRequest) {
 
     if (isSingle) {
       singleTableau = getTableauById(selectedIds[0]);
-      const tableauDesc = describeTableau(singleTableau, selectedIds[0]);
+      const tableauDesc = describeTableau(singleTableau);
 
       prompt = `
 You are the interpretive guide for "Reading the Panorama".
@@ -107,13 +118,15 @@ Selected Card Details:
 ${tableauDesc}
 
 CRITICAL REQUIREMENT:
-You must base your interpretation on the provided selected card details. Do not invent a different card name, scene, or meaning. Use the provided "Title", "Image Description (Prompt)", "Core Essence", etc., as the absolute source of truth for the card's identity.
+You MUST base your interpretation primarily on the ACTUAL IMAGE(S) provided. The card images attached to this request are the absolute source of truth for what each card visually depicts. Describe what you actually SEE in the image.
+The metadata fields below (Title, Core Essence, Archetypes, etc.) serve as a symbolic interpretive framework and emotional vocabulary to guide your reading. However, the visual description ("Symbolic Template Description") may NOT exactly match the actual image — when there is any discrepancy, ALWAYS prioritize what you see in the real image.
+Do not invent scenes or details that are not visible in the actual card image.
 
 Generate a JSON response conforming strictly to this structure:
 {
   "cards": {
     "Single": {
-      "title": "The exact title of this card (or its poetic translation in Turkish if the query is in Turkish)",
+      "title": "Generate a unique poetic title inspired by what you SEE in the actual image (in the language of the query)",
       "coreVerb": "The exact core verb of this card (or its translation in Turkish if the query is in Turkish)",
       "coreEssence": "The exact core essence of this card (or its translation in Turkish if the query is in Turkish)",
       "centralTension": "The exact central tension of this card (or its translation in Turkish if the query is in Turkish)",
@@ -145,7 +158,8 @@ Respond ONLY with valid JSON. Do not include markdown code block syntax (like \`
 
 READING VOICE AND WRITING STYLE RULES (CRITICAL):
 1. THE ARTWORK MUST LEAD:
-   The final reading must feel grounded in the selected card's artwork as described by the "Image Description (Prompt)". Use the visual details of this specific scene to anchor your interpretation. If the reading could still make sense without referencing the artwork, it is too generic. Rewrite it.
+   The final reading must feel grounded in what you ACTUALLY SEE in the card image. Describe concrete visual details from the real image — colors, figures, landscapes, objects, lighting, mood. If the reading could still make sense without referencing specific visual elements you see in the image, it is too generic. Rewrite it.
+   NOTE: The "Symbolic Template Description" field is an approximate description and may not perfectly match the actual image. Always describe what you see, not what the template says.
 
 2. MANDATORY FOCUS ON USER'S QUESTION:
    If the user has written/asked a question, every interpretation, synthesis, and card commentary MUST be directly, deeply, and explicitly related to that question. There must be a clear, logical, and intuitive connection/bridge between the visual elements/symbols of the card and the user's query. Do not just describe or interpret the card in isolation; you must actively answer or address the user's question using the card's visual cues. The question must be the primary lens of the entire reading.
@@ -167,16 +181,16 @@ READING VOICE AND WRITING STYLE RULES (CRITICAL):
    If the User Query "${cleanQuestion || "Silent Inquiry"}" is in Turkish, or contains Turkish words, you MUST write all text values in the JSON response in Turkish (translate all generated fields like title, coreVerb, coreEssence, centralTension, transformation.from, transformation.to, primaryArchetypes, symbols, lightExpression, shadowExpression, tarotResonances, visualObservations, promptObservations, originalPrompt, invitation, warning, positionalInterpretation, contextualInterpretation, synthesis, whatSees, whatAsks, overall invitation, etc. into poetic, natural Turkish). If the query is in English or is a Silent Inquiry, write in English.
 
 7. DYNAMIC VARIETY RULE (CRITICAL):
-   Each card has a unique ID. The current card has ID #${selectedIds[0]}. Even if this card shares a base template name with another card you have interpreted, you MUST generate completely unique, customized descriptions, metaphors, and interpretations tailored to this user's specific context. Avoid using the same boilerplate wording or repeating the same phrases. Vary the emotional focus, the visual focus of the description, and the advice based on this specific ID so that the user gets a fresh experience.
+    This card is "${singleTableau.dateName}" — a unique panorama with its own distinct image. You MUST generate completely unique, customized descriptions, metaphors, and interpretations based on what you actually SEE in the image. Do not reuse any interpretation from any other reading. Vary the emotional focus, the visual focus, and the advice so that the user gets a completely fresh experience.
 `;
     } else {
       pastTableau = getTableauById(selectedIds[0]);
       presentTableau = getTableauById(selectedIds[1]);
       futureTableau = getTableauById(selectedIds[2]);
 
-      const pastDesc = describeTableau(pastTableau, selectedIds[0]);
-      const presentDesc = describeTableau(presentTableau, selectedIds[1]);
-      const futureDesc = describeTableau(futureTableau, selectedIds[2]);
+      const pastDesc = describeTableau(pastTableau);
+      const presentDesc = describeTableau(presentTableau);
+      const futureDesc = describeTableau(futureTableau);
 
       prompt = `
 You are the interpretive guide for "Reading the Panorama".
@@ -196,13 +210,15 @@ ${presentDesc}
 ${futureDesc}
 
 CRITICAL REQUIREMENT:
-You must base your interpretation on the provided selected cards details. Do not invent different card names, scenes, or meanings. Use the provided "Title", "Image Description (Prompt)", "Core Essence", etc., as the absolute source of truth for the identity of each card.
+You MUST base your interpretation primarily on the ACTUAL IMAGES provided. The card images attached to this request are the absolute source of truth for what each card visually depicts. Describe what you actually SEE in each image.
+The metadata fields below (Title, Core Essence, Archetypes, etc.) serve as a symbolic interpretive framework and emotional vocabulary to guide your reading. However, the visual description ("Symbolic Template Description") may NOT exactly match the actual image — when there is any discrepancy, ALWAYS prioritize what you see in the real images.
+Do not invent scenes or details that are not visible in the actual card images.
 
 Generate a JSON response conforming strictly to this structure:
 {
   "cards": {
     "Past": {
-      "title": "The exact title of the Past card (or its translation in Turkish if the query is in Turkish)",
+      "title": "Generate a unique poetic title inspired by what you SEE in the Past card image (in the language of the query)",
       "coreVerb": "The exact core verb of the Past card (or its translation in Turkish if the query is in Turkish)",
       "coreEssence": "The exact core essence of the Past card (or its translation in Turkish if the query is in Turkish)",
       "centralTension": "The exact central tension of the Past card (or its translation in Turkish if the query is in Turkish)",
@@ -224,7 +240,7 @@ Generate a JSON response conforming strictly to this structure:
       "contextualInterpretation": "A direct, clear 2-3 sentence interpretation of the card's visual symbols and its essence in relation to the query: ${cleanQuestion || "their situation"}."
     },
     "Present": {
-      "title": "The exact title of the Present card (or its translation in Turkish if the query is in Turkish)",
+      "title": "Generate a unique poetic title inspired by what you SEE in the Present card image (in the language of the query)",
       "coreVerb": "The exact core verb of the Present card (or its translation in Turkish if the query is in Turkish)",
       "coreEssence": "The exact core essence of the Present card (or its translation in Turkish if the query is in Turkish)",
       "centralTension": "The exact central tension of the Present card (or its translation in Turkish if the query is in Turkish)",
@@ -246,7 +262,7 @@ Generate a JSON response conforming strictly to this structure:
       "contextualInterpretation": "A direct, clear 2-3 sentence interpretation of the card's visual symbols and its essence in relation to the query: ${cleanQuestion || "their situation"}."
     },
     "Future": {
-      "title": "The exact title of the Future card (or its translation in Turkish if the query is in Turkish)",
+      "title": "Generate a unique poetic title inspired by what you SEE in the Future card image (in the language of the query)",
       "coreVerb": "The exact core verb of the Future card (or its translation in Turkish if the query is in Turkish)",
       "coreEssence": "The exact core essence of the Future card (or its translation in Turkish if the query is in Turkish)",
       "centralTension": "The exact central tension of the Future card (or its translation in Turkish if the query is in Turkish)",
@@ -279,7 +295,8 @@ Respond ONLY with valid JSON. Do not include markdown code block syntax (like \`
 
 READING VOICE AND WRITING STYLE RULES (CRITICAL):
 1. THE ARTWORK MUST LEAD:
-   The final reading must feel grounded in the selected cards' artwork as described by their "Image Description (Prompt)". Use the visual details of these specific scenes to anchor your interpretation. If the reading could still make sense without referencing the artwork, it is too generic. Rewrite it.
+   The final reading must feel grounded in what you ACTUALLY SEE in the card images. Describe concrete visual details from the real images — colors, figures, landscapes, objects, lighting, mood. If the reading could still make sense without referencing specific visual elements you see in the images, it is too generic. Rewrite it.
+   NOTE: The "Symbolic Template Description" fields are approximate descriptions and may not perfectly match the actual images. Always describe what you see, not what the template says.
 
 2. MANDATORY FOCUS ON USER'S QUESTION:
    If the user has written/asked a question, every interpretation, synthesis, relationship analysis, and card commentary MUST be directly, deeply, and explicitly related to that question. There must be a clear, logical, and intuitive connection/bridge between the visual elements/symbols of the cards and the user's query. Do not just describe or interpret the cards in isolation; you must actively answer or address the user's question using the cards' visual cues. The question must be the primary lens of the entire reading.
@@ -306,7 +323,7 @@ READING VOICE AND WRITING STYLE RULES (CRITICAL):
    If the User Query "${cleanQuestion || "Silent Inquiry"}" is in Turkish, or contains Turkish words, you MUST write all text values in the JSON response in Turkish (translate all generated fields like title, coreVerb, coreEssence, centralTension, transformation.from, transformation.to, primaryArchetypes, symbols, lightExpression, shadowExpression, tarotResonances, visualObservations, promptObservations, originalPrompt, invitation, warning, positionalInterpretation, contextualInterpretation, relationshipAnalysis, synthesis, whatSees, whatAsks, overall invitation, etc. into poetic, natural Turkish). If the query is in English or is a Silent Inquiry, write in English.
 
 7. DYNAMIC VARIETY RULE (CRITICAL):
-   Each card has a unique ID. The selected cards have IDs: Past (#${selectedIds[0]}), Present (#${selectedIds[1]}), Future (#${selectedIds[2]}). Even if these cards share base templates with other cards you have interpreted, you MUST generate completely unique, distinct descriptions, metaphors, and interpretations tailored to this user's specific context. Avoid using the same boilerplate wording or repeating the same phrases. Vary the focus, emotional tone, and specific angle of the advice based on these specific IDs so that no two readings ever feel identical.
+    The selected cards are unique panoramas: Past ("${pastTableau.dateName}"), Present ("${presentTableau.dateName}"), Future ("${futureTableau.dateName}"). Each has its own distinct image. You MUST generate completely unique descriptions, metaphors, and interpretations based on what you actually SEE in each image. Do not reuse any interpretation from any other reading. Vary the focus, emotional tone, and specific angle of the advice so that no two readings ever feel identical.
 `;
     }
 
@@ -340,6 +357,35 @@ READING VOICE AND WRITING STYLE RULES (CRITICAL):
             maxTokens = 8192;
           }
 
+          // Build message content: use vision (image+text) for capable models, text-only otherwise
+          const useVision = isVisionCapable(model);
+          let messageContent: any;
+
+          if (useVision) {
+            // Collect all card image URLs
+            const imageUrls: string[] = [];
+            if (isSingle && singleTableau) {
+              imageUrls.push(singleTableau.imageUrl);
+            } else {
+              if (pastTableau) imageUrls.push(pastTableau.imageUrl);
+              if (presentTableau) imageUrls.push(presentTableau.imageUrl);
+              if (futureTableau) imageUrls.push(futureTableau.imageUrl);
+            }
+
+            // Build multi-modal content array: images first, then text prompt
+            messageContent = [
+              ...imageUrls.map((url, idx) => ({
+                type: "image_url" as const,
+                image_url: { url, detail: "high" as const },
+              })),
+              { type: "text" as const, text: prompt },
+            ];
+            logDebug(`Using VISION mode with ${imageUrls.length} image(s) for model ${model}`);
+          } else {
+            messageContent = prompt;
+            logDebug(`Using TEXT-ONLY mode for model ${model}`);
+          }
+
           tempRes = await fetch(OPENROUTER_API_URL, {
             method: "POST",
             headers: {
@@ -353,7 +399,7 @@ READING VOICE AND WRITING STYLE RULES (CRITICAL):
               messages: [
                 {
                   role: "user",
-                  content: prompt,
+                  content: messageContent,
                 }
               ],
               temperature: 0.8,

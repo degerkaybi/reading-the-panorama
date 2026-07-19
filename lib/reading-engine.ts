@@ -41,8 +41,26 @@ export function getSafeDayId(id: number): number {
   return id % (maxAvailable + 1);
 }
 
+// Convert a dayId to a human-readable date label (e.g. "23 Nisan 2026")
+const TURKISH_MONTHS = [
+  "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
+  "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"
+];
+
+export function getCardDateLabel(dayId: number): string {
+  const genesisDate = new Date(GENESIS_DATE_STR);
+  const offsetDays = dayId === 0 ? 0 : dayId - 1;
+  const targetDate = new Date(genesisDate.getTime() + offsetDays * 24 * 60 * 60 * 1000);
+  
+  const dd = targetDate.getUTCDate();
+  const mm = TURKISH_MONTHS[targetDate.getUTCMonth()];
+  const yyyy = targetDate.getUTCFullYear();
+  
+  return `${dd} ${mm} ${yyyy}`;
+}
+
 // Helper to get a tableau based on selected ID (0-90)
-export function getTableauById(id: number): PanoramaTableau {
+export function getTableauById(id: number): PanoramaTableau & { dateName: string } {
   // Try to find a template with the exact ID first
   let template = samplePanoramas.find((p) => p.id === id);
 
@@ -52,16 +70,21 @@ export function getTableauById(id: number): PanoramaTableau {
     template = samplePanoramas[index];
   }
 
-  // Ensure we get a safe ID (wrapping around future dates) corresponding to the template's ID
-  const safeTemplateId = getSafeDayId(template.id);
-  const liveImageUrl = getCdnImageUrl(safeTemplateId);
+  // Use the user's selected ID (not the template's ID) for the image URL
+  // so that the displayed image matches the card the user actually selected
+  const safeSelectedId = getSafeDayId(id);
+  const liveImageUrl = getCdnImageUrl(safeSelectedId);
 
-  // Return a cloned version with the selected ID and live CDN image URL preserved
+  // Get the human-readable date name for this card
+  const dateName = getCardDateLabel(safeSelectedId);
+
+  // Return a cloned version with the selected ID, date name, and live CDN image URL
   return {
     ...template,
     id: id,
     imageUrl: liveImageUrl,
-    title: `${template.title} (Tableau #${id})`,
+    dateName: dateName,
+    title: `Panorama ${dateName}`,
   };
 }
 
@@ -174,29 +197,34 @@ function createCardReading(
   };
 }
 
-function getPopulationScore(id: number): number {
-  // Map our template IDs to relative population densities
-  const baseId = id % 6;
-  switch (baseId) {
-    case 0: return 1;  // ID 8: 1 figure (The Threshold of Winds)
-    case 1: return 6;  // ID 24: Circle of figures (The Silent Assembly)
-    case 2: return 0;  // ID 45: 0 figures (The Sunken Library)
-    case 3: return 2;  // ID 62: 2 figures (The Weavers of Light)
-    case 4: return 20; // ID 81: Diverse crowd (The Public Revelation)
-    case 5: return 1;  // ID 89: 1 figure (The Solitary Observatory)
+function getPopulationScore(tableau: PanoramaTableau): number {
+  const cleanTitle = tableau.title.replace(/\s*\(Tableau #\d+\)/, "");
+  const template = samplePanoramas.find((p) => p.title === cleanTitle);
+  if (!template) return 1;
+
+  switch (template.id) {
+    case 7: return 1;   // The Threshold of Winds
+    case 23: return 6;  // The Silent Assembly
+    case 44: return 0;  // The Sunken Library
+    case 61: return 2;  // The Weavers of Light
+    case 80: return 20; // The Public Revelation
+    case 88: return 1;  // The Solitary Observatory
     default: return 1;
   }
 }
 
-function getSpaceType(id: number): "open" | "closed" | "cosmic" {
-  const baseId = id % 6;
-  switch (baseId) {
-    case 0: return "open";   // Windy cliff
-    case 1: return "closed"; // Misty forest clearing
-    case 2: return "closed"; // Submerged library
-    case 3: return "cosmic"; // High in night sky
-    case 4: return "open";   // City square
-    case 5: return "cosmic"; // Observatory peak / nebula
+function getSpaceType(tableau: PanoramaTableau): "open" | "closed" | "cosmic" {
+  const cleanTitle = tableau.title.replace(/\s*\(Tableau #\d+\)/, "");
+  const template = samplePanoramas.find((p) => p.title === cleanTitle);
+  if (!template) return "open";
+
+  switch (template.id) {
+    case 7: return "open";    // Windy cliff
+    case 23: return "closed"; // Misty forest clearing
+    case 44: return "closed"; // Submerged library
+    case 61: return "cosmic"; // High in night sky
+    case 80: return "open";    // City square
+    case 88: return "cosmic"; // Observatory peak / nebula
     default: return "open";
   }
 }
@@ -206,13 +234,13 @@ function analyzeRelationships(
   present: PanoramaTableau,
   future: PanoramaTableau
 ): string {
-  const popPast = getPopulationScore(past.id);
-  const popPresent = getPopulationScore(present.id);
-  const popFuture = getPopulationScore(future.id);
+  const popPast = getPopulationScore(past);
+  const popPresent = getPopulationScore(present);
+  const popFuture = getPopulationScore(future);
 
-  const spacePast = getSpaceType(past.id);
-  const spacePresent = getSpaceType(present.id);
-  const spaceFuture = getSpaceType(future.id);
+  const spacePast = getSpaceType(past);
+  const spacePresent = getSpaceType(present);
+  const spaceFuture = getSpaceType(future);
 
   let dynamics = [];
 

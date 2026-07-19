@@ -27,8 +27,8 @@ export default function ReadingCard({ card }: ReadingCardProps) {
     };
   }, [isLightboxOpen]);
 
-  // Clean the title from the mapped mockup suffix
-  const cleanTitle = tableau.title.replace(/\(Tableau #\d+\)/, "");
+  // Use the title directly (now in date-based format: "Panorama DD Month YYYY")
+  const cleanTitle = tableau.title;
 
   return (
     <div
@@ -76,7 +76,7 @@ export default function ReadingCard({ card }: ReadingCardProps) {
                 </span>
                 <span className="w-1.5 h-1.5 rounded-full bg-neutral-800" />
                 <span className="text-xs text-neutral-400 font-mono">
-                  Sample template #{tableau.id}
+                  {cleanTitle}
                 </span>
               </div>
               <h3 className="text-3xl font-serif font-light text-neutral-100 tracking-wide">
@@ -276,7 +276,7 @@ export default function ReadingCard({ card }: ReadingCardProps) {
               {/* Image Info Overlay (subtle at the bottom) */}
               <div className="absolute -bottom-16 left-0 right-0 text-center px-4 pointer-events-none">
                 <span className="text-[10px] uppercase tracking-widest text-gold-400 font-mono block mb-1">
-                  {role} • Tableau #{selectedId}
+                  {role} • {cleanTitle}
                 </span>
                 <h4 className="text-lg font-serif font-light text-neutral-200">
                   {cleanTitle}
