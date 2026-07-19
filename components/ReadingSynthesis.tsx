@@ -59,21 +59,34 @@ export default function ReadingSynthesis({ result, onRestart }: ReadingSynthesis
 
     setShareState("loading");
     try {
-      const response = await fetch("/api/share", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(result),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to share: Status ${response.status} - ${errorText}`);
+      // 1. Extract only the essential dynamic fields to minimize URL size
+      const cardsPayload: Record<string, any> = {};
+      for (const [role, card] of Object.entries(result.cards)) {
+        if (card) {
+          cardsPayload[role] = {
+            id: card.selectedId,
+            ci: card.contextualInterpretation,
+            pi: card.positionalInterpretation,
+          };
+        }
       }
 
-      const data = await response.json();
-      const url = `${window.location.origin}/share/${data.id}`;
+      const payload = {
+        q: result.question,
+        ra: result.relationshipAnalysis,
+        sy: result.synthesis,
+        ws: result.whatSees,
+        wa: result.whatAsks,
+        in: result.invitation,
+        c: cardsPayload,
+      };
+
+      // 2. Serialize and Base64-encode (with UTF-8 safety)
+      const jsonStr = JSON.stringify(payload);
+      const base64Str = btoa(encodeURIComponent(jsonStr));
+
+      // 3. Form the sharing URL using the query parameter
+      const url = `${window.location.origin}/share?data=${base64Str}`;
       setShareUrl(url);
 
       const copied = await copyToClipboard(url);
@@ -81,8 +94,8 @@ export default function ReadingSynthesis({ result, onRestart }: ReadingSynthesis
         setShareState("copied");
         setTimeout(() => setShareState("idle"), 2000);
       } else {
-        // Still mark as copied (or show success) because we successfully saved the file
-        // and generated the share link which is now displayed on the screen for them.
+        // Still mark as copied (or show success) because we successfully generated
+        // the share link which is now displayed on the screen for them.
         setShareState("copied");
         setTimeout(() => setShareState("idle"), 2000);
       }
