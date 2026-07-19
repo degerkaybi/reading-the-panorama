@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from "react";
 import { Sparkles, HelpCircle, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
-import { getCardDateSlashLabel } from "../lib/reading-engine";
+
 
 interface PanoramaSelectorProps {
   cards: number[];
@@ -207,11 +207,8 @@ export default function PanoramaSelector({ cards, onSelectionComplete, maxSelect
                   <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-neutral-900/20 via-neutral-950/60 to-neutral-950 pointer-events-none" />
 
                   {/* Header of the card */}
-                  <div className="flex justify-between items-center relative z-10 w-full px-1">
+                  <div className="relative z-10 w-full px-1 flex justify-start">
                     <span className="text-[8px] tracking-widest text-neutral-500 font-mono">PANORAMA</span>
-                    <span className="text-[9px] font-mono text-neutral-400 font-medium">
-                      {getCardDateSlashLabel(id)}
-                    </span>
                   </div>
 
                   {/* Visual abstraction representing hidden landscape canvas */}
