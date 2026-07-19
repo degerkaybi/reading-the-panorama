@@ -14,7 +14,44 @@ export default function PanoramaSelector({ cards, onSelectionComplete, maxSelect
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
 
+  // Mouse drag scrolling state
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
+  const [dragged, setDragged] = useState(false);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    setIsDragging(true);
+    setDragged(false);
+    setStartX(e.pageX - el.offsetLeft);
+    setScrollLeft(el.scrollLeft);
+  };
+
+  const handleMouseLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const x = e.pageX - el.offsetLeft;
+    const walk = (x - startX) * 2.2; // Scroll speed multiplier
+    if (Math.abs(walk) > 5) {
+      setDragged(true);
+    }
+    el.scrollLeft = scrollLeft - walk;
+  };
+
   const handleCardClick = (id: number) => {
+    if (dragged) return; // Prevent selection if dragging occurred
     if (selected.includes(id)) {
       setSelected(selected.filter((x) => x !== id));
     } else if (selected.length < maxSelection) {
@@ -55,16 +92,25 @@ export default function PanoramaSelector({ cards, onSelectionComplete, maxSelect
     const el = scrollContainerRef.current;
     if (el) {
       el.addEventListener("scroll", handleScroll);
-      // Initial check
       handleScroll();
       
-      // Scroll to center initially to give a sense of length
-      const centerScroll = (el.scrollWidth - el.clientWidth) / 2;
-      el.scrollLeft = centerScroll;
+      // Start scroll from 0 (left-most position)
+      el.scrollLeft = 0;
+      
+      // After a short delay, smoothly scroll to center to indicate that dragging/scrolling is possible
+      const timer = setTimeout(() => {
+        const centerScroll = (el.scrollWidth - el.clientWidth) / 2;
+        el.scrollTo({
+          left: centerScroll,
+          behavior: "smooth",
+        });
+      }, 500);
+
+      return () => {
+        el.removeEventListener("scroll", handleScroll);
+        clearTimeout(timer);
+      };
     }
-    return () => {
-      if (el) el.removeEventListener("scroll", handleScroll);
-    };
   }, []);
 
   const handleReset = () => {
@@ -77,79 +123,20 @@ export default function PanoramaSelector({ cards, onSelectionComplete, maxSelect
     }
   };
 
-  const slots = maxSelection === 3 ? (["Past", "Present", "Future"] as const) : (["Presence"] as const);
-
   return (
-    <div className="w-full max-w-7xl mx-auto flex flex-col items-center justify-center space-y-8 py-4">
-      {/* Top Banner showing selection status */}
-      <div className="w-full max-w-4xl glass-panel-glow rounded-xl p-6 flex flex-col md:flex-row items-center justify-between gap-6 px-8">
-        <div className="flex flex-col space-y-1">
-          <span className="text-xs uppercase tracking-widest text-gold-400 font-medium">Reading Status</span>
-          <h2 className="text-lg text-neutral-300 font-light font-serif">
-            {maxSelection === 3 ? "Select three moments from the timeline" : "Select a single moment from the timeline"}
-          </h2>
-        </div>
-
-        {/* Selected slots display */}
-        <div className="flex items-center gap-4">
-          {slots.map((role, idx) => {
-            const isAssigned = selected[idx] !== undefined;
-
-            return (
-              <div
-                key={role}
-                className={`relative w-24 h-16 rounded border flex flex-col items-center justify-center transition-all duration-700 ${
-                  isAssigned
-                    ? "border-gold-500/40 bg-gold-950/20"
-                    : "border-neutral-800 bg-neutral-900/40 text-neutral-600"
-                }`}
-              >
-                <span className="text-[10px] uppercase tracking-wider text-neutral-500 mb-1">{role}</span>
-                {isAssigned ? (
-                  <div
-                    className="w-2.5 h-2.5 rounded-full bg-gold-400 shadow-[0_0_10px_#d4ac42] animate-pulse"
-                  />
-                ) : (
-                  <HelpCircle className="w-4 h-4 stroke-[1.5]" />
-                )}
-                {isAssigned && (
-                  <div
-                    className="absolute inset-0 rounded border border-gold-400/20 shadow-[0_0_15px_rgba(190,144,46,0.15)] pointer-events-none animate-fade-in"
-                  />
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Action Controls */}
-        <div className="flex items-center gap-3">
-          {selected.length > 0 && (
-            <button
-              onClick={handleReset}
-              className="p-3 text-neutral-400 hover:text-white hover:bg-neutral-900/60 rounded-full transition-all duration-300 border border-neutral-900 hover:border-neutral-800"
-              title="Reset selection"
-            >
-              <RefreshCw className="w-4 h-4" />
-            </button>
-          )}
-          <button
-            onClick={handleConfirm}
-            disabled={selected.length < maxSelection}
-            className={`px-6 py-3 rounded-full text-xs uppercase tracking-widest font-semibold flex items-center gap-2 transition-all duration-700 ${
-              selected.length === maxSelection
-                ? "bg-gold-500 hover:bg-gold-400 text-neutral-950 shadow-[0_0_20px_rgba(190,144,46,0.25)] cursor-pointer"
-                : "bg-neutral-900 text-neutral-500 border border-neutral-850 cursor-not-allowed"
-            }`}
-          >
-            <Sparkles className="w-4 h-4" />
-            Reveal Reading
-          </button>
-        </div>
+    <div className="w-full max-w-7xl mx-auto flex flex-col items-center justify-center space-y-4 py-4">
+      {/* Centered Minimalist Header */}
+      <div className="text-center flex flex-col space-y-1 mb-2 animate-fade-in">
+        <h2 className="text-xl text-neutral-200 font-serif font-light tracking-wide">
+          {maxSelection === 3 ? "Select Three Moments" : "Select Your Moment"}
+        </h2>
+        <p className="text-[11px] text-gold-400/80 uppercase tracking-widest font-medium">
+          {maxSelection === 3 ? "Timeline of Past, Present, and Future" : "Your Current Presence"}
+        </p>
       </div>
 
       {/* Main Horizontal Selector tape */}
-      <div className="relative w-full overflow-hidden py-12 px-4">
+      <div className="relative w-full overflow-hidden py-8 px-4">
         {/* Shadow Overlays to mask the scroll edges */}
         <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-neutral-950 to-transparent pointer-events-none z-10" />
         <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-neutral-950 to-transparent pointer-events-none z-10" />
@@ -175,7 +162,13 @@ export default function PanoramaSelector({ cards, onSelectionComplete, maxSelect
         {/* The horizontal scrolling track */}
         <div
           ref={scrollContainerRef}
-          className="w-full flex gap-4 overflow-x-auto scrollbar-none py-4 px-20 select-none scroll-smooth"
+          onMouseDown={handleMouseDown}
+          onMouseLeave={handleMouseLeave}
+          onMouseUp={handleMouseUp}
+          onMouseMove={handleMouseMove}
+          className={`w-full flex gap-4 overflow-x-auto scrollbar-none py-6 px-20 select-none ${
+            isDragging ? "cursor-grabbing" : "cursor-grab"
+          }`}
         >
           {cards.map((id) => {
             const isSelected = selected.includes(id);
@@ -186,10 +179,15 @@ export default function PanoramaSelector({ cards, onSelectionComplete, maxSelect
               <div
                 key={id}
                 onClick={() => handleCardClick(id)}
-                className="flex-shrink-0 cursor-pointer"
+                className="relative flex-shrink-0 cursor-pointer py-6"
               >
+                {isSelected && (
+                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 text-xs font-serif tracking-widest uppercase text-gold-400 font-semibold drop-shadow-[0_0_10px_rgba(212,172,66,0.5)] animate-fade-in">
+                    {position}
+                  </div>
+                )}
                 <div
-                  className={`relative w-64 h-36 rounded-lg overflow-hidden flex flex-col justify-between p-4 transform hover:-translate-y-2 hover:scale-[1.03] transition-all duration-500 ${
+                  className={`relative w-48 h-28 rounded-lg overflow-hidden flex flex-col justify-between p-3 transform hover:-translate-y-1 hover:scale-[1.03] transition-all duration-500 ${
                     isSelected
                       ? "border border-gold-400 bg-gradient-to-b from-neutral-900 to-gold-950/20 shadow-[0_0_25px_rgba(190,144,46,0.2)]"
                       : "border border-neutral-800 bg-neutral-900/40 hover:border-gold-500/30 hover:bg-neutral-900/60 shadow-[0_4px_12px_rgba(0,0,0,0.3)]"
@@ -210,36 +208,31 @@ export default function PanoramaSelector({ cards, onSelectionComplete, maxSelect
 
                   {/* Header of the card */}
                   <div className="flex justify-between items-center relative z-10 w-full px-1">
-                    <span className="text-[9px] tracking-widest text-neutral-500 font-mono">PANORAMA</span>
-                    <span className="text-[10px] font-mono text-neutral-400 font-medium">
+                    <span className="text-[8px] tracking-widest text-neutral-500 font-mono">PANORAMA</span>
+                    <span className="text-[9px] font-mono text-neutral-400 font-medium">
                       {getCardDateSlashLabel(id)}
                     </span>
                   </div>
 
                   {/* Visual abstraction representing hidden landscape canvas */}
-                  <div className="w-full flex items-center justify-center py-2 opacity-30 relative z-10">
+                  <div className="w-full flex items-center justify-center py-1.5 opacity-30 relative z-10">
                     <div
-                      className={`w-16 h-10 rounded-lg border border-dashed flex items-center justify-center transition-all duration-700 ${
+                      className={`w-12 h-8 rounded-lg border border-dashed flex items-center justify-center transition-all duration-700 ${
                         isSelected ? "border-gold-400/40 rotate-12 scale-105" : "border-neutral-700"
                       }`}
                     >
-                      <div className="w-10 h-6 rounded-md border border-neutral-900 bg-neutral-950/40" />
+                      <div className="w-8 h-5 rounded-md border border-neutral-900 bg-neutral-950/40" />
                     </div>
                   </div>
 
                   {/* Bottom / Selection indicators */}
-                  <div className="w-full flex flex-col items-center space-y-1 relative z-10 h-8 justify-center">
+                  <div className="w-full flex flex-col items-center space-y-0.5 relative z-10 h-6 justify-center">
                     {isSelected ? (
-                      <div className="flex flex-col items-center animate-fade-in">
-                        <span className="text-[9px] uppercase tracking-widest text-gold-400 font-semibold font-sans">
-                          {position}
-                        </span>
-                        <span className="text-[10px] text-neutral-400 font-mono font-medium">
-                          Choice {selectionIndex + 1}
-                        </span>
-                      </div>
+                      <span className="text-[9px] text-neutral-400 font-mono font-medium animate-fade-in">
+                        Choice {selectionIndex + 1}
+                      </span>
                     ) : (
-                      <span className="text-[9px] uppercase tracking-widest text-neutral-500 hover:text-gold-400 transition-colors duration-300">
+                      <span className="text-[8px] uppercase tracking-widest text-neutral-500 hover:text-gold-400 transition-colors duration-300">
                         Select
                       </span>
                     )}
@@ -251,10 +244,37 @@ export default function PanoramaSelector({ cards, onSelectionComplete, maxSelect
         </div>
       </div>
 
-      <div className="text-center max-w-md text-xs text-neutral-500 font-light leading-relaxed">
-        {maxSelection === 3
-          ? "Let your fingers slide across the timeline. Focus on your query, listen to the silent hum, and select the three positions that call to you."
-          : "Let your fingers slide across the timeline. Focus on your query, listen to the silent hum, and select the single position that calls to you."}
+      {/* Action Controls & Info */}
+      <div className="flex flex-col items-center gap-6 mt-4 z-20">
+        <div className="flex items-center gap-3">
+          {selected.length > 0 && (
+            <button
+              onClick={handleReset}
+              className="p-3 text-neutral-400 hover:text-white hover:bg-neutral-900/60 rounded-full transition-all duration-300 border border-neutral-900 hover:border-neutral-800"
+              title="Reset selection"
+            >
+              <RefreshCw className="w-4 h-4" />
+            </button>
+          )}
+          <button
+            onClick={handleConfirm}
+            disabled={selected.length < maxSelection}
+            className={`px-8 py-3.5 rounded-full text-xs uppercase tracking-widest font-semibold flex items-center gap-2 transition-all duration-700 ${
+              selected.length === maxSelection
+                ? "bg-gold-500 hover:bg-gold-400 text-neutral-950 shadow-[0_0_25px_rgba(190,144,46,0.3)] cursor-pointer scale-105"
+                : "bg-neutral-900 text-neutral-500 border border-neutral-850 cursor-not-allowed"
+            }`}
+          >
+            <Sparkles className="w-4 h-4" />
+            Reveal Reading
+          </button>
+        </div>
+
+        <div className="text-center max-w-md text-xs text-neutral-500 font-light leading-relaxed px-4">
+          {maxSelection === 3
+            ? "Let your fingers slide across the timeline. Focus on your query, listen to the silent hum, and select the three positions that call to you."
+            : "Let your fingers slide across the timeline. Focus on your query, listen to the silent hum, and select the single position that calls to you."}
+        </div>
       </div>
     </div>
   );
