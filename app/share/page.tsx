@@ -21,7 +21,7 @@ const base64ToUint8Array = (base64: string): Uint8Array => {
 
 const decompressString = async (base64: string): Promise<string> => {
   const bytes = base64ToUint8Array(base64);
-  const stream = new Blob([bytes]).stream();
+  const stream = new Blob([bytes as any]).stream();
   const decompressedStream = stream.pipeThrough(new DecompressionStream("deflate"));
   return await new Response(decompressedStream).text();
 };
