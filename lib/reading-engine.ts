@@ -43,12 +43,18 @@ export function getSafeDayId(id: number): number {
 
 // Helper to get a tableau based on selected ID (0-90)
 export function getTableauById(id: number): PanoramaTableau {
-  const safeId = getSafeDayId(id);
-  const liveImageUrl = getCdnImageUrl(safeId);
+  // Try to find a template with the exact ID first
+  let template = samplePanoramas.find((p) => p.id === id);
 
-  // Deterministically map to one of our 6 templates using modulo of original ID
-  const index = id % samplePanoramas.length;
-  const template = samplePanoramas[index];
+  if (!template) {
+    // Deterministically map to one of our 6 templates using modulo of original ID
+    const index = id % samplePanoramas.length;
+    template = samplePanoramas[index];
+  }
+
+  // Ensure we get a safe ID (wrapping around future dates) corresponding to the template's ID
+  const safeTemplateId = getSafeDayId(template.id);
+  const liveImageUrl = getCdnImageUrl(safeTemplateId);
 
   // Return a cloned version with the selected ID and live CDN image URL preserved
   return {
