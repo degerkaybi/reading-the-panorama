@@ -89,11 +89,14 @@ export default function ReadingFlowPage() {
     }
     setShuffledIds(arr);
 
-    // Play shuffling animation, then transition to selection state
+    // Play shuffling animation (disperse then gather back), then transition to selection state
     setTimeout(() => {
       setIsShufflingAnimating(false);
+    }, 1500);
+
+    setTimeout(() => {
       setFlowState("selection");
-    }, 2800);
+    }, 2500);
   };
 
   // Transition: Selection Complete -> Reveal
