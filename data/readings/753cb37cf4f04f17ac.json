@@ -1,0 +1,166 @@
+{
+  "question": "fghfgh",
+  "cards": {
+    "Past": {
+      "tableau": {
+        "id": 55,
+        "title": "The Final Voyage of the Flame",
+        "imageUrl": "https://cdn.panorama.garden/generated_2026-06-16.jpg",
+        "originalPrompt": "A Viking funeral ship burning at sea at night beneath a dark, cloud-filled sky, with figures observing from a rocky shore.",
+        "coreEssence": "Closure of a cycle",
+        "coreVerb": "Release",
+        "centralTension": "Grief versus letting go",
+        "transformation": {
+          "from": "Attachment",
+          "to": "Acceptance"
+        },
+        "primaryArchetypes": [
+          "The Mourner",
+          "The Guardian"
+        ],
+        "secondaryArchetypes": [],
+        "symbols": [
+          "Longship",
+          "Fire",
+          "Dark clouds",
+          "Rugged coastline"
+        ],
+        "lightExpression": "Honoring the dead",
+        "shadowExpression": "Despair",
+        "invitation": "Acknowledge what has reached its natural end.",
+        "warning": "Do not cling to the ashes of what is gone.",
+        "supportedMeanings": [],
+        "unsupportedMeanings": [],
+        "tarotResonances": [
+          "Death",
+          "Six of Swords"
+        ],
+        "visualObservations": [
+          "Viking funeral ship engulfed in flames",
+          "Dark, stormy sky",
+          "Figures standing on a rocky shore",
+          "High cliffside"
+        ],
+        "promptObservations": [
+          "Nighttime setting",
+          "Strong contrast between fire and cold sea"
+        ],
+        "dateSlashLabel": "16/06/26",
+        "isPredefined": false
+      },
+      "selectedId": 55,
+      "role": "Past",
+      "positionalInterpretation": "This card establishes the foundation of your current state by highlighting the necessity of closure. It suggests that your past actions or recent experiences were defined by a difficult but necessary farewell.",
+      "contextualInterpretation": "Your query reflects a need to clear away the debris of the past, much like the burning ship in the painting. You have been holding space for something that, while once vital, has now served its purpose. To move forward, you must acknowledge the finality of this cycle and allow the flames to consume what no longer serves your path."
+    },
+    "Present": {
+      "tableau": {
+        "id": 47,
+        "title": "The Weight of the Divine Storm",
+        "imageUrl": "https://cdn.panorama.garden/generated_2026-06-08.jpg",
+        "originalPrompt": "A dramatic scene featuring a powerful lightning bolt striking near a group of people on a rocky cliffside with classical ruins.",
+        "coreEssence": "Surrender to chaos",
+        "coreVerb": "Endure",
+        "centralTension": "Human fragility versus elemental power",
+        "transformation": {
+          "from": "Control",
+          "to": "Humility"
+        },
+        "primaryArchetypes": [
+          "The Victim",
+          "The Observer"
+        ],
+        "secondaryArchetypes": [],
+        "symbols": [
+          "Lightning bolt",
+          "Broken columns",
+          "Earthen jars",
+          "Falling figures"
+        ],
+        "lightExpression": "Awe and realization",
+        "shadowExpression": "Overwhelming terror",
+        "invitation": "Accept the unpredictability of your current circumstances.",
+        "warning": "Do not fight the storm; look for shelter.",
+        "supportedMeanings": [],
+        "unsupportedMeanings": [],
+        "tarotResonances": [
+          "The Tower",
+          "The Hermit"
+        ],
+        "visualObservations": [
+          "Massive lightning strike piercing the sky",
+          "People scrambling on a rocky cliff",
+          "Broken marble pillars",
+          "A woman in white reaching toward the sky"
+        ],
+        "promptObservations": [
+          "Dramatic lighting",
+          "High-contrast chiaroscuro"
+        ],
+        "dateSlashLabel": "08/06/26",
+        "isPredefined": false
+      },
+      "selectedId": 47,
+      "role": "Present",
+      "positionalInterpretation": "The present position shows you in the midst of a volatile, shifting environment. It highlights a moment where external forces seem to be disrupting your sense of stability, forcing you to react quickly.",
+      "contextualInterpretation": "Your question is currently caught in a whirlwind of sudden, unexpected change. Just as the figures in this scene are caught by the lightning, you are finding that your plans are being dramatically rerouted. Instead of trying to maintain order, focus on finding solid ground amidst the chaos."
+    },
+    "Future": {
+      "tableau": {
+        "id": 40,
+        "title": "The Golden Procession",
+        "imageUrl": "https://cdn.panorama.garden/generated_2026-06-01.jpg",
+        "originalPrompt": "A victorious figure in a horse-drawn chariot moving through a crowded, sunlit plaza surrounded by classical buildings.",
+        "coreEssence": "Public recognition",
+        "coreVerb": "Celebrate",
+        "centralTension": "Status versus authenticity",
+        "transformation": {
+          "from": "Isolation",
+          "to": "Inclusion"
+        },
+        "primaryArchetypes": [
+          "The Victor",
+          "The Citizen"
+        ],
+        "secondaryArchetypes": [],
+        "symbols": [
+          "White horses",
+          "Chariot",
+          "Roman-style architecture",
+          "Golden helmet"
+        ],
+        "lightExpression": "Triumph",
+        "shadowExpression": "Pride",
+        "invitation": "Prepare to step into a more visible role.",
+        "warning": "Do not lose your balance in the excitement of success.",
+        "supportedMeanings": [],
+        "unsupportedMeanings": [],
+        "tarotResonances": [
+          "The Chariot",
+          "Six of Wands"
+        ],
+        "visualObservations": [
+          "A figure in a chariot drawn by white horses",
+          "A large crowd in an open circular arena",
+          "Classical columns",
+          "Bright, clear daylight"
+        ],
+        "promptObservations": [
+          "Processional movement",
+          "Vibrant, sunlit atmosphere"
+        ],
+        "dateSlashLabel": "01/06/26",
+        "isPredefined": false
+      },
+      "selectedId": 40,
+      "role": "Future",
+      "positionalInterpretation": "The future position suggests a movement toward clarity, public engagement, and potential success. It indicates that the turbulence of the present will eventually give way to a more structured and celebrated path.",
+      "contextualInterpretation": "As you move past your current confusion, you will emerge into a space of greater visibility and order. Your path will lead you toward a moment where your efforts are recognized and integrated into a broader community. Keep your focus steady on the direction you choose, and you will find your place in the sun."
+    }
+  },
+  "relationshipAnalysis": "The narrative arc moves from the dark, private grief of the funeral ship to the chaotic, exposed vulnerability of the lightning storm, and finally into the bright, collective order of the chariot procession. You are transitioning from an internal ending to an external upheaval, eventually arriving at a place of structured success. The density of figures increases from few to many, signifying a shift from solitary reflection to active social involvement.",
+  "synthesis": "Your journey begins by honoring what must end, moves through a period of intense, unavoidable disruption, and ultimately points toward a future of public accomplishment. You are learning to let go, endure the unpredictable, and trust that your eventual path leads to stability and recognition. By moving through the storm, you prepare yourself for the triumph that follows.",
+  "whatSees": "The Panorama sees a soul moving from deep solitude into the heart of the storm to find their place in the light.",
+  "whatAsks": "The Panorama asks: Are you ready to let the old world burn so that you can walk into your new arena?",
+  "invitation": "Step out of the shadows and into your own procession."
+}
