@@ -45,7 +45,6 @@ export default function ReadingFlowPage() {
   const [isShufflingAnimating, setIsShufflingAnimating] = useState(false);
   const [readingResult, setReadingResult] = useState<ReadingResult | null>(null);
   const [readingSource, setReadingSource] = useState<"live" | null>(null);
-  const [usedModel, setUsedModel] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
   const [rateLimitInfo, setRateLimitInfo] = useState<RateLimitInfo>({ isBlocked: false, timeLeftMs: 0 });
 
@@ -140,7 +139,6 @@ export default function ReadingFlowPage() {
               console.log("Successfully generated live AI reading!");
               setReadingResult(data.reading);
               setReadingSource("live");
-              setUsedModel(data.modelUsed || "openrouter/auto");
               
               // Exclude these selected IDs from appearing in the next shuffle session
               try {
@@ -196,7 +194,6 @@ export default function ReadingFlowPage() {
     setShuffledIds([]);
     setReadingResult(null);
     setReadingSource(null);
-    setUsedModel(null);
     setApiError(null);
     setFlowState("question");
   };
@@ -534,10 +531,7 @@ export default function ReadingFlowPage() {
               {/* Reading Source Badge */}
               {readingSource === "live" && (
                 <div className="flex justify-center mt-2">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[9px] font-mono font-semibold uppercase tracking-wider text-emerald-400 bg-emerald-950/30 border border-emerald-500/20 rounded-full shadow-[0_0_15px_rgba(16,185,129,0.05)]">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    AI Live Reading ({usedModel})
-                  </span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.7)]" title="AI Live Reading" />
                 </div>
               )}
 
