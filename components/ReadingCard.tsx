@@ -30,6 +30,10 @@ export default function ReadingCard({ card }: ReadingCardProps) {
 
   // Use the title directly (now in date-based format: "Panorama DD Month YYYY")
   const cleanTitle = tableau.title;
+  // The tableau already carries the date calculated with its deck's season.
+  // Infer the season only as a fallback for older shared readings.
+  const dateSlashLabel =
+    tableau.dateSlashLabel ?? getCardDateSlashLabel(selectedId, selectedId >= 91 ? 2 : 1);
 
   return (
     <div
@@ -61,7 +65,7 @@ export default function ReadingCard({ card }: ReadingCardProps) {
           <div className="absolute bottom-6 left-6 flex flex-col">
             <span className="text-[10px] font-mono text-neutral-400">PANORAMA</span>
             <span className="text-2xl font-serif text-white font-light text-glow">
-              {getCardDateSlashLabel(selectedId)}
+              {dateSlashLabel}
             </span>
           </div>
         </div>

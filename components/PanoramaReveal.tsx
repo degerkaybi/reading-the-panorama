@@ -59,6 +59,8 @@ export default function PanoramaReveal({
         {roles.map((role, idx) => {
           const id = selectedIds[idx];
           const tableau = getTableau(id);
+          const dateSlashLabel =
+            tableau.dateSlashLabel ?? getCardDateSlashLabel(id, id >= 91 ? 2 : 1);
 
           return (
             /* Card Container showing revealed artwork directly */
@@ -81,23 +83,31 @@ export default function PanoramaReveal({
                 <div className="absolute bottom-0 left-0 right-0 p-4 flex flex-col space-y-1.5 z-10">
                   <div className="flex justify-between items-center text-[9px] font-mono text-gold-400">
                     <span className="font-semibold">{role.toUpperCase()}</span>
-                    <span>{getCardDateSlashLabel(id)}</span>
+                    <span>{dateSlashLabel}</span>
                   </div>
                   <h3 className="text-base font-serif font-light text-white leading-tight">
                     {tableau.title}
                   </h3>
-                  <div className="flex items-center gap-2">
+                  {tableau.isPredefined ? (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9px] text-neutral-400 uppercase tracking-widest font-mono">
+                          {tableau.coreVerb}
+                        </span>
+                        <span className="w-1 h-1 rounded-full bg-neutral-800" />
+                        <span className="text-[9px] text-gold-500/80 uppercase tracking-widest font-mono">
+                          Essence
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-neutral-300 font-light italic leading-normal line-clamp-2">
+                        "{tableau.coreEssence}"
+                      </p>
+                    </>
+                  ) : (
                     <span className="text-[9px] text-neutral-400 uppercase tracking-widest font-mono">
-                      {tableau.coreVerb}
+                      Image-led interpretation follows
                     </span>
-                    <span className="w-1 h-1 rounded-full bg-neutral-800" />
-                    <span className="text-[9px] text-gold-500/80 uppercase tracking-widest font-mono">
-                      Essence
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-neutral-300 font-light italic leading-normal line-clamp-2">
-                    "{tableau.coreEssence}"
-                  </p>
+                  )}
                 </div>
               </div>
             </div>
