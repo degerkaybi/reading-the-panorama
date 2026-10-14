@@ -216,13 +216,12 @@ export default function ReadingSynthesis({ result, onRestart }: ReadingSynthesis
           <button
             onClick={handleShare}
             disabled={shareState === "loading"}
-            className={`px-8 py-3 rounded-full font-mono text-xs uppercase tracking-widest transition-all duration-300 flex items-center gap-2 border cursor-pointer min-w-[200px] justify-center ${
-              shareState === "copied"
+            className={`px-8 py-3 rounded-full font-mono text-xs uppercase tracking-widest transition-all duration-300 flex items-center gap-2 border cursor-pointer min-w-[200px] justify-center ${shareState === "copied"
                 ? "bg-emerald-950/80 border-emerald-500/50 text-emerald-400"
                 : shareState === "error"
-                ? "bg-red-950/80 border-red-500/50 text-red-400"
-                : "bg-gold-500 hover:bg-gold-400 text-neutral-950 border-gold-500 font-semibold shadow-[0_0_20px_rgba(190,144,46,0.15)]"
-            }`}
+                  ? "bg-red-950/80 border-red-500/50 text-red-400"
+                  : "bg-gold-500 hover:bg-gold-400 text-neutral-950 border-gold-500 font-semibold shadow-[0_0_20px_rgba(190,144,46,0.15)]"
+              }`}
           >
             <Share2 className="w-4 h-4" />
             <span>Share Reading</span>
@@ -250,23 +249,23 @@ export default function ReadingSynthesis({ result, onRestart }: ReadingSynthesis
         </p>
 
         <div className={`w-full max-w-lg bg-neutral-900/40 border border-neutral-900/80 p-3 rounded-xl items-center justify-between gap-3 text-xs mt-2 font-mono shadow-[inset_0_1px_0_rgba(255,255,255,0.02)] ${shareUrl ? "flex" : "hidden"}`}>
-            <input
-              aria-label="Share link"
-              readOnly
-              value={shareUrl || ""}
-              onFocus={(event) => event.currentTarget.select()}
-              className="min-w-0 flex-1 bg-transparent text-neutral-400 outline-none"
-            />
-            <button
-              onClick={async () => {
-                if (!shareUrl) return;
-                const copied = await copyToClipboard(shareUrl);
-                setShareState(copied ? "copied" : "error");
-              }}
-              className="text-gold-400 hover:text-gold-300 font-mono text-[10px] uppercase tracking-wider font-semibold cursor-pointer whitespace-nowrap bg-neutral-950/60 border border-neutral-850 px-3 py-1.5 rounded hover:border-gold-500/30 transition-all duration-300"
-            >
-              Copy
-            </button>
+          <input
+            aria-label="Share link"
+            readOnly
+            value={shareUrl || ""}
+            onFocus={(event) => event.currentTarget.select()}
+            className="min-w-0 flex-1 bg-transparent text-neutral-400 outline-none"
+          />
+          <button
+            onClick={async () => {
+              if (!shareUrl) return;
+              const copied = await copyToClipboard(shareUrl);
+              setShareState(copied ? "copied" : "error");
+            }}
+            className="text-gold-400 hover:text-gold-300 font-mono text-[10px] uppercase tracking-wider font-semibold cursor-pointer whitespace-nowrap bg-neutral-950/60 border border-neutral-850 px-3 py-1.5 rounded hover:border-gold-500/30 transition-all duration-300"
+          >
+            Copy
+          </button>
         </div>
       </div>
     </div>
