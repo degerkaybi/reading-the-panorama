@@ -49,7 +49,7 @@ export default function DeckSelector({ onSelect }: DeckSelectorProps) {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6 w-full">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-1 sm:gap-6 md:grid-cols-2 w-full">
         {seasons.map((season) => {
           const info = SEASONS[season];
           const styles = deckStyles[season];
@@ -60,7 +60,7 @@ export default function DeckSelector({ onSelect }: DeckSelectorProps) {
               key={season}
               type="button"
               onClick={() => onSelect(season)}
-              className={`group relative min-h-[340px] sm:min-h-[390px] overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-900/40 text-left shadow-[0_24px_70px_rgba(0,0,0,0.35)] transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_30px_90px_rgba(0,0,0,0.5)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${styles.border}`}
+              className={`group relative min-h-[300px] sm:min-h-[390px] overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-900/40 text-left shadow-[0_24px_70px_rgba(0,0,0,0.35)] transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_30px_90px_rgba(0,0,0,0.5)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${styles.border}`}
               aria-label={`Choose ${info.label}`}
             >
               <img
@@ -71,29 +71,29 @@ export default function DeckSelector({ onSelect }: DeckSelectorProps) {
               <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/45 to-black/10" />
               <div className={`absolute inset-0 bg-gradient-to-br ${styles.glow} opacity-35 transition-opacity duration-500 group-hover:opacity-55`} />
 
-              <div className="relative z-10 flex min-h-[340px] sm:min-h-[390px] flex-col justify-between p-6 sm:p-7">
-                <div className="flex items-start justify-between gap-4">
+              <div className="relative z-10 flex min-h-[300px] sm:min-h-[390px] flex-col justify-between p-3 sm:p-7">
+                <div className="flex flex-col items-start gap-2 sm:flex-row sm:justify-between sm:gap-4">
                   <span className={`flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/35 font-serif text-lg backdrop-blur ${styles.accentText}`}>
                     {styles.numeral}
                   </span>
-                  <span className="rounded-full border border-white/15 bg-black/35 px-3 py-1.5 text-[9px] uppercase tracking-[0.2em] text-neutral-200 backdrop-blur">
+                  <span className="rounded-full border border-white/15 bg-black/35 px-2 py-1.5 text-[8px] sm:px-3 sm:text-[9px] uppercase tracking-[0.1em] sm:tracking-[0.2em] text-neutral-200 backdrop-blur">
                     Tableau {String(info.cardRange[0]).padStart(2, "0")}–{info.cardRange[1]}
                   </span>
                 </div>
 
                 <div className="space-y-4">
                   <div>
-                    <h2 className="text-3xl font-serif font-light text-white drop-shadow-lg">
+                    <h2 className="text-2xl sm:text-3xl font-serif font-light text-white drop-shadow-lg">
                       {info.label}
                     </h2>
-                    <p className={`mt-1 text-[11px] font-mono uppercase tracking-[0.2em] ${styles.accentText}`}>
-                      {info.artist} · {info.handle}
+                    <p className={`mt-1 text-[9px] sm:text-[11px] font-mono uppercase tracking-[0.08em] sm:tracking-[0.2em] ${styles.accentText}`}>
+                      {info.artist}<span className="hidden sm:inline"> · </span><span className="block sm:inline">{info.handle}</span>
                     </p>
                   </div>
 
-                  <div className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[0.18em] transition-transform duration-300 group-hover:translate-x-1 ${styles.button}`}>
-                    Begin with this deck
-                    <ArrowRight className="h-3.5 w-3.5" />
+                  <div className={`inline-flex items-center gap-1 sm:gap-2 rounded-full px-2.5 sm:px-4 py-2.5 text-[9px] sm:text-[10px] font-semibold uppercase tracking-[0.04em] sm:tracking-[0.18em] transition-transform duration-300 group-hover:translate-x-1 ${styles.button}`}>
+                    <span className="sm:hidden">Choose deck</span><span className="hidden sm:inline">Begin with this deck</span>
+                    <ArrowRight className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                   </div>
                 </div>
               </div>
