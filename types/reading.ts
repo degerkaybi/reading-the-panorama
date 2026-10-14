@@ -4,7 +4,7 @@ export type PositionRole = "Past" | "Present" | "Future" | "Single";
 
 export interface CardReading {
   tableau: PanoramaTableau;
-  selectedId: number; // The actual chosen number (0-90) between 0-90
+  selectedId: number; // The actual chosen tableau number across all seasons
   role: PositionRole;
   contextualInterpretation: string;
   positionalInterpretation: string;

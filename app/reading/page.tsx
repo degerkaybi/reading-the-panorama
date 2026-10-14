@@ -6,16 +6,17 @@ import { Compass, ArrowLeft, ArrowRight, MessageSquare, RotateCcw, Clock } from 
 import Link from "next/link";
 
 // Components
+import DeckSelector from "../../components/DeckSelector";
 import PanoramaSelector from "../../components/PanoramaSelector";
 import PanoramaReveal from "../../components/PanoramaReveal";
 import ReadingCard from "../../components/ReadingCard";
 import ReadingSynthesis from "../../components/ReadingSynthesis";
 
 // Reading Engine
-import { getTableauById } from "../../lib/reading-engine";
+import { getTableauById, DeckSeason, SEASONS } from "../../lib/reading-engine";
 import { ReadingResult } from "../../types/reading";
 
-type FlowState = "question" | "shuffling" | "selection" | "reveal" | "synthesizing" | "result";
+type FlowState = "deckSelect" | "question" | "shuffling" | "selection" | "reveal" | "synthesizing" | "result";
 
 interface RateLimitInfo {
   isBlocked: boolean;
@@ -37,7 +38,8 @@ function formatTimeLeft(ms: number): string {
 }
 
 export default function ReadingFlowPage() {
-  const [flowState, setFlowState] = useState<FlowState>("question");
+  const [flowState, setFlowState] = useState<FlowState>("deckSelect");
+  const [deckSeason, setDeckSeason] = useState<DeckSeason>(1);
   const [readingMode, setReadingMode] = useState<"three" | "single">("single");
   const [question, setQuestion] = useState("");
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -58,6 +60,17 @@ export default function ReadingFlowPage() {
     return () => clearInterval(interval);
   }, []);
 
+  // Get current season info for dynamic theming
+  const seasonInfo = SEASONS[deckSeason];
+  const isS2 = deckSeason === 2;
+  const accentClass = isS2 ? "violet" : "gold";
+
+  // Transition: Deck Select -> Question
+  const handleDeckSelect = (season: DeckSeason) => {
+    setDeckSeason(season);
+    setFlowState("question");
+  };
+
   // Transition: Question -> Shuffling
   const handleQuestionSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -71,7 +84,7 @@ export default function ReadingFlowPage() {
     // Load previously selected card IDs from localStorage to exclude them
     let excludedIds: number[] = [];
     try {
-      const stored = localStorage.getItem("previousSelectedIds");
+      const stored = localStorage.getItem(`previousSelectedIds_s${deckSeason}`);
       if (stored) {
         excludedIds = JSON.parse(stored);
       }
@@ -79,8 +92,10 @@ export default function ReadingFlowPage() {
       console.error("Failed to parse previousSelectedIds from localStorage:", e);
     }
 
-    // Generate list of 0-90, excluding the previously selected IDs
-    const arr = Array.from({ length: 91 }, (_, i) => i).filter(id => !excludedIds.includes(id));
+    // Generate card IDs based on the selected season
+    const [rangeStart, rangeEnd] = seasonInfo.cardRange;
+    const arr = Array.from({ length: rangeEnd - rangeStart + 1 }, (_, i) => rangeStart + i)
+      .filter(id => !excludedIds.includes(id));
     
     // Shuffle the list
     for (let i = arr.length - 1; i > 0; i--) {
@@ -117,13 +132,13 @@ export default function ReadingFlowPage() {
       const performReading = async () => {
         setApiError(null);
         try {
-          console.log("Triggering reading API (/api/read) for question:", question, "selectedIds:", selectedIds);
+          console.log("Triggering reading API (/api/read) for question:", question, "selectedIds:", selectedIds, "season:", deckSeason);
           const response = await fetch("/api/read", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ question, selectedIds }),
+            body: JSON.stringify({ question, selectedIds, season: deckSeason }),
           });
 
           console.log("Response status from /api/read:", response.status);
@@ -146,7 +161,7 @@ export default function ReadingFlowPage() {
                 
                 // Exclude these selected IDs from appearing in the next shuffle session
                 try {
-                  localStorage.setItem("previousSelectedIds", JSON.stringify(selectedIds));
+                  localStorage.setItem(`previousSelectedIds_s${deckSeason}`, JSON.stringify(selectedIds));
                 } catch (e) {
                   console.error("Failed to save selectedIds to localStorage:", e);
                 }
@@ -191,7 +206,7 @@ export default function ReadingFlowPage() {
         isMounted = false;
       };
     }
-  }, [flowState, question, selectedIds]);
+  }, [flowState, question, selectedIds, deckSeason]);
 
   const handleRestart = () => {
     setQuestion("");
@@ -200,7 +215,7 @@ export default function ReadingFlowPage() {
     setReadingResult(null);
     setReadingSource(null);
     setApiError(null);
-    setFlowState("question");
+    setFlowState("deckSelect");
   };
 
   const handleRetry = () => {
@@ -209,33 +224,55 @@ export default function ReadingFlowPage() {
     setFlowState("synthesizing");
   };
 
+  // Dynamic accent colors based on season
+  const accentText = isS2 ? "text-violet-400" : "text-gold-400";
+  const accentGlow = isS2 ? "text-glow-violet" : "text-glow-gold";
+  const accentBg = isS2 ? "bg-violet-500" : "bg-gold-500";
+  const accentBgHover = isS2 ? "hover:bg-violet-400" : "hover:bg-gold-400";
+  const accentBorder = isS2 ? "border-violet-500/50" : "border-gold-500/50";
+  const accentShadow = isS2 ? "shadow-[0_0_20px_rgba(139,92,246,0.15)]" : "shadow-[0_0_20px_rgba(190,144,46,0.15)]";
+  const accentPulse = isS2 ? "text-violet-500" : "text-gold-500";
+
   return (
     <div className="flex-grow flex flex-col min-h-screen bg-neutral-950 text-neutral-100">
       {/* Header bar */}
       <header className="w-full py-6 px-6 md:px-12 flex justify-between items-center border-b border-neutral-950/80 bg-neutral-950/50 backdrop-blur z-30 sticky top-0">
-        <Link
-          href="/"
-          className="flex items-center gap-2.5 text-neutral-400 hover:text-white transition-colors duration-300 group"
-        >
-          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-          <span className="text-[10px] uppercase tracking-widest font-mono">Exit Reading</span>
-        </Link>
-
-        <div className="flex items-center gap-2">
-          <Compass className="w-5 h-5 text-gold-500 animate-pulse" />
-          <span className="text-xs uppercase tracking-widest font-semibold font-serif text-glow-gold">
-            Reading the Panorama
-          </span>
+        <div className="w-8 sm:w-24 flex justify-start">
+          {flowState !== "deckSelect" && (
+            <Link
+              href="/"
+              className="flex items-center gap-2.5 text-neutral-400 hover:text-white transition-colors duration-300 group"
+            >
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+              <span className="hidden sm:inline text-[10px] uppercase tracking-widest font-mono">Exit Reading</span>
+            </Link>
+          )}
         </div>
 
-        <div>
-          {flowState !== "question" && flowState !== "synthesizing" && (
+        <div className="flex items-center gap-2">
+          <Compass className={`w-5 h-5 ${accentPulse} animate-pulse`} />
+          <span className={`text-xs uppercase tracking-widest font-semibold font-serif ${isS2 ? "" : "text-glow-gold"}`}>
+            Reading the Panorama
+          </span>
+          {flowState !== "deckSelect" && (
+            <span className={`ml-2 text-[9px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+              isS2
+                ? "border-violet-500/30 text-violet-400 bg-violet-950/20"
+                : "border-gold-500/30 text-gold-400 bg-gold-950/20"
+            }`}>
+              {seasonInfo.label}
+            </span>
+          )}
+        </div>
+
+        <div className="w-8 sm:w-24 flex justify-end">
+          {flowState !== "deckSelect" && flowState !== "synthesizing" && (
             <button
               onClick={handleRestart}
               className="flex items-center gap-1.5 text-neutral-500 hover:text-neutral-300 text-xs font-mono transition-colors duration-300"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              <span>Restart</span>
+              <span className="hidden sm:inline">Restart</span>
             </button>
           )}
         </div>
@@ -243,6 +280,13 @@ export default function ReadingFlowPage() {
 
       {/* Main Flow Canvas */}
       <div className="flex-grow flex flex-col justify-center py-8">
+        {/* STATE 0: DECK SELECTION */}
+        {flowState === "deckSelect" && (
+          <div key="deckSelect" className="animate-fade-in">
+            <DeckSelector onSelect={handleDeckSelect} />
+          </div>
+        )}
+
         {/* STATE 1: QUESTION */}
         {flowState === "question" && (
           <div
@@ -250,7 +294,7 @@ export default function ReadingFlowPage() {
             className="w-full max-w-xl mx-auto px-6 space-y-8 flex flex-col animate-fade-in"
           >
             <div className="space-y-3 text-center">
-              <span className="text-xs uppercase tracking-widest text-gold-400 font-medium">Formulate Inquiry</span>
+              <span className={`text-xs uppercase tracking-widest ${accentText} font-medium`}>Formulate Inquiry</span>
               <h2 className="text-3xl font-serif font-light text-neutral-100">
                 What would you like the Panorama to help you see more clearly?
               </h2>
@@ -270,7 +314,9 @@ export default function ReadingFlowPage() {
                   onClick={() => setReadingMode("single")}
                   className={`px-5 py-2.5 rounded-full text-[10px] uppercase tracking-widest font-semibold transition-all duration-500 border ${
                     readingMode === "single"
-                      ? "bg-gold-500/10 border-gold-500/50 text-gold-300 shadow-[0_0_20px_rgba(190,144,46,0.1)]"
+                      ? isS2
+                        ? "bg-violet-500/10 border-violet-500/50 text-violet-300 shadow-[0_0_20px_rgba(139,92,246,0.1)]"
+                        : "bg-gold-500/10 border-gold-500/50 text-gold-300 shadow-[0_0_20px_rgba(190,144,46,0.1)]"
                       : "bg-neutral-900/30 border-neutral-900 text-neutral-500 hover:text-neutral-300 hover:border-neutral-850"
                   }`}
                 >
@@ -281,7 +327,9 @@ export default function ReadingFlowPage() {
                   onClick={() => setReadingMode("three")}
                   className={`px-5 py-2.5 rounded-full text-[10px] uppercase tracking-widest font-semibold transition-all duration-500 border ${
                     readingMode === "three"
-                      ? "bg-gold-500/10 border-gold-500/50 text-gold-300 shadow-[0_0_20px_rgba(190,144,46,0.1)]"
+                      ? isS2
+                        ? "bg-violet-500/10 border-violet-500/50 text-violet-300 shadow-[0_0_20px_rgba(139,92,246,0.1)]"
+                        : "bg-gold-500/10 border-gold-500/50 text-gold-300 shadow-[0_0_20px_rgba(190,144,46,0.1)]"
                       : "bg-neutral-900/30 border-neutral-900 text-neutral-500 hover:text-neutral-300 hover:border-neutral-850"
                   }`}
                 >
@@ -329,7 +377,9 @@ export default function ReadingFlowPage() {
                     }}
                     rows={4}
                     placeholder="The more details you provide, the more accurate results you will get for your interpretation..."
-                    className="w-full px-6 py-5 bg-neutral-900/40 hover:bg-neutral-900/60 focus:bg-neutral-900/80 rounded-xl border border-neutral-800 focus:border-gold-500/50 focus:ring-0 focus:outline-none text-neutral-200 text-sm font-light leading-relaxed placeholder-neutral-600 transition-all duration-300 resize-none"
+                    className={`w-full px-6 py-5 bg-neutral-900/40 hover:bg-neutral-900/60 focus:bg-neutral-900/80 rounded-xl border border-neutral-800 focus:ring-0 focus:outline-none text-neutral-200 text-sm font-light leading-relaxed placeholder-neutral-600 transition-all duration-300 resize-none ${
+                      isS2 ? "focus:border-violet-500/50" : "focus:border-gold-500/50"
+                    }`}
                   />
                   <div className="absolute bottom-4 right-4 text-[10px] font-mono text-neutral-600">
                     Press Shift+Enter to send
@@ -342,7 +392,9 @@ export default function ReadingFlowPage() {
                     disabled={!question.trim()}
                     className={`w-full sm:w-auto px-8 py-3.5 rounded-full text-xs uppercase tracking-widest font-semibold flex items-center justify-center gap-2 transition-all duration-700 ${
                       question.trim()
-                        ? "bg-gold-500 hover:bg-gold-400 text-neutral-950 cursor-pointer shadow-[0_0_20px_rgba(190,144,46,0.15)]"
+                        ? isS2
+                          ? "bg-violet-500 hover:bg-violet-400 text-neutral-950 cursor-pointer shadow-[0_0_20px_rgba(139,92,246,0.15)]"
+                          : "bg-gold-500 hover:bg-gold-400 text-neutral-950 cursor-pointer shadow-[0_0_20px_rgba(190,144,46,0.15)]"
                         : "bg-neutral-900 text-neutral-500 border border-neutral-850 cursor-not-allowed"
                     }`}
                   >
@@ -362,12 +414,12 @@ export default function ReadingFlowPage() {
             className="w-full max-w-xl mx-auto px-6 space-y-12 flex flex-col items-center justify-center text-center py-10 animate-fade-in"
           >
             <div className="space-y-3">
-              <span className="text-xs uppercase tracking-widest text-gold-400 font-medium">Sacred Preparation</span>
+              <span className={`text-xs uppercase tracking-widest ${accentText} font-medium`}>Sacred Preparation</span>
               <h2 className="text-3xl font-serif font-light text-neutral-100">
                 Shuffle the Panorama
               </h2>
               <p className="text-sm text-neutral-400 font-light leading-relaxed">
-                Mix the 91 tableaus of the Panorama. Let them dissolve their chronological order, allowing you to choose purely by intuition.
+                Mix the {seasonInfo.cardRange[1] - seasonInfo.cardRange[0] + 1} tableaus of {seasonInfo.label}. Let them dissolve their chronological order, allowing you to choose purely by intuition.
               </p>
             </div>
 
@@ -391,19 +443,21 @@ export default function ReadingFlowPage() {
                       transition: `transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)`,
                       transitionDelay: `${idx * 0.02}s`
                     }}
-                    className="absolute w-56 h-32 rounded-lg border border-gold-500/10 bg-gradient-to-b from-neutral-900 via-neutral-950 to-neutral-950 shadow-[0_0_15px_rgba(0,0,0,0.4)] flex flex-col justify-between p-3"
+                    className={`absolute w-56 h-32 rounded-lg border bg-gradient-to-b from-neutral-900 via-neutral-950 to-neutral-950 shadow-[0_0_15px_rgba(0,0,0,0.4)] flex flex-col justify-between p-3 ${
+                      isS2 ? "border-violet-500/10" : "border-gold-500/10"
+                    }`}
                   >
                     {/* Minimal card back look */}
-                    <div className="absolute top-1.5 left-1.5 w-2 h-2 border-t border-l border-gold-500/20 rounded-tl" />
-                    <div className="absolute top-1.5 right-1.5 w-2 h-2 border-t border-r border-gold-500/20 rounded-tr" />
-                    <div className="absolute bottom-1.5 left-1.5 w-2 h-2 border-b border-l border-gold-500/20 rounded-bl" />
-                    <div className="absolute bottom-1.5 right-1.5 w-2 h-2 border-b border-r border-gold-500/20 rounded-br" />
+                    <div className={`absolute top-1.5 left-1.5 w-2 h-2 border-t border-l rounded-tl ${isS2 ? "border-violet-500/20" : "border-gold-500/20"}`} />
+                    <div className={`absolute top-1.5 right-1.5 w-2 h-2 border-t border-r rounded-tr ${isS2 ? "border-violet-500/20" : "border-gold-500/20"}`} />
+                    <div className={`absolute bottom-1.5 left-1.5 w-2 h-2 border-b border-l rounded-bl ${isS2 ? "border-violet-500/20" : "border-gold-500/20"}`} />
+                    <div className={`absolute bottom-1.5 right-1.5 w-2 h-2 border-b border-r rounded-br ${isS2 ? "border-violet-500/20" : "border-gold-500/20"}`} />
                     <div className="w-full flex justify-between items-center opacity-10">
                       <span className="text-[6px] font-mono">PANORAMA</span>
                       <span className="text-[6px] font-mono">??</span>
                     </div>
-                    <div className="w-6 h-6 rounded-full border border-gold-500/10 mx-auto flex items-center justify-center opacity-20">
-                      <div className="w-2 h-2 rounded-full bg-gold-500/10" />
+                    <div className={`w-6 h-6 rounded-full border mx-auto flex items-center justify-center opacity-20 ${isS2 ? "border-violet-500/10" : "border-gold-500/10"}`}>
+                      <div className={`w-2 h-2 rounded-full ${isS2 ? "bg-violet-500/10" : "bg-gold-500/10"}`} />
                     </div>
                     <div className="w-full text-center opacity-10">
                       <span className="text-[6px] font-mono">TABLEAU</span>
@@ -419,15 +473,19 @@ export default function ReadingFlowPage() {
                 type="button"
                 onClick={triggerShuffle}
                 disabled={isShufflingAnimating}
-                className={`px-10 py-4 bg-gradient-to-r from-gold-600 to-gold-500 hover:from-gold-500 hover:to-gold-400 text-neutral-950 font-sans font-semibold text-xs uppercase tracking-widest rounded-full shadow-[0_0_30px_rgba(190,144,46,0.2)] flex items-center gap-3 transition-all duration-300 ${
+                className={`px-10 py-4 text-neutral-950 font-sans font-semibold text-xs uppercase tracking-widest rounded-full flex items-center gap-3 transition-all duration-300 ${
                   isShufflingAnimating ? "opacity-50 cursor-not-allowed scale-95" : "hover:scale-[1.02] cursor-pointer"
+                } ${
+                  isS2
+                    ? "bg-gradient-to-r from-violet-600 to-violet-500 hover:from-violet-500 hover:to-violet-400 shadow-[0_0_30px_rgba(139,92,246,0.2)]"
+                    : "bg-gradient-to-r from-gold-600 to-gold-500 hover:from-gold-500 hover:to-gold-400 shadow-[0_0_30px_rgba(190,144,46,0.2)]"
                 }`}
               >
                 {isShufflingAnimating ? "Mixing Tableaus..." : "Shuffle the Timeline"}
               </button>
               
               {isShufflingAnimating && (
-                <p className="text-xs text-gold-300 italic font-light opacity-60 animate-fade-in">
+                <p className={`text-xs italic font-light opacity-60 animate-fade-in ${isS2 ? "text-violet-300" : "text-gold-300"}`}>
                   Distributing moments across the canvas...
                 </p>
               )}
@@ -451,7 +509,7 @@ export default function ReadingFlowPage() {
           <div key="reveal" className="animate-fade-in">
             <PanoramaReveal
               selectedIds={selectedIds}
-              getTableau={getTableauById}
+              getTableau={(id) => getTableauById(id, deckSeason)}
               onRevealComplete={handleRevealComplete}
             />
           </div>
@@ -466,11 +524,11 @@ export default function ReadingFlowPage() {
             <div className="space-y-6 text-center max-w-sm px-6">
               <div className="relative w-16 h-16 mx-auto flex items-center justify-center">
                 <div className="absolute inset-0 rounded-full border-2 border-neutral-900" />
-                <div className="absolute inset-0 rounded-full border-t-2 border-gold-500 animate-spin" />
-                <Compass className="w-6 h-6 text-gold-400/80 stroke-[1.2]" />
+                <div className={`absolute inset-0 rounded-full border-t-2 animate-spin ${isS2 ? "border-violet-500" : "border-gold-500"}`} />
+                <Compass className={`w-6 h-6 stroke-[1.2] ${isS2 ? "text-violet-400/80" : "text-gold-400/80"}`} />
               </div>
               <div className="space-y-2">
-                <span className="text-[10px] uppercase tracking-widest text-gold-500 font-semibold font-mono">
+                <span className={`text-[10px] uppercase tracking-widest font-semibold font-mono ${isS2 ? "text-violet-500" : "text-gold-500"}`}>
                   Synthesizing Narrative
                 </span>
                 <p className="text-sm text-neutral-400 font-light leading-relaxed">
@@ -503,7 +561,11 @@ export default function ReadingFlowPage() {
               <div className="flex gap-3 justify-center pt-4">
                 <button
                   onClick={handleRetry}
-                  className="px-6 py-3 bg-gold-500 hover:bg-gold-400 text-neutral-950 font-sans font-semibold text-xs uppercase tracking-widest rounded-full shadow-[0_0_20px_rgba(190,144,46,0.2)] transition-all duration-300"
+                  className={`px-6 py-3 text-neutral-950 font-sans font-semibold text-xs uppercase tracking-widest rounded-full transition-all duration-300 ${
+                    isS2
+                      ? "bg-violet-500 hover:bg-violet-400 shadow-[0_0_20px_rgba(139,92,246,0.2)]"
+                      : "bg-gold-500 hover:bg-gold-400 shadow-[0_0_20px_rgba(190,144,46,0.2)]"
+                  }`}
                 >
                   Try Again
                 </button>
@@ -526,23 +588,30 @@ export default function ReadingFlowPage() {
           >
             {/* Reading Header */}
             <div className="w-full max-w-4xl mx-auto px-6 text-center space-y-4">
-              <span className="text-xs uppercase tracking-widest text-gold-400 font-semibold font-mono block">
+              <span className={`text-xs uppercase tracking-widest font-semibold font-mono block ${accentText}`}>
                 The Synthesized Reading
               </span>
               <h1 className="text-4xl sm:text-5xl font-serif text-neutral-100 font-light">
                 {readingResult.question ? "Your Guided Reading" : "The Silent Panorama Assembly"}
               </h1>
               
-              {/* Reading Source Badge */}
-              {readingSource === "live" && (
-                <div className="flex justify-center mt-2">
+              {/* Season & Source Badges */}
+              <div className="flex justify-center items-center gap-3 mt-2">
+                <span className={`text-[9px] font-mono uppercase tracking-wider px-2.5 py-1 rounded-full border ${
+                  isS2
+                    ? "border-violet-500/30 text-violet-400 bg-violet-950/20"
+                    : "border-gold-500/30 text-gold-400 bg-gold-950/20"
+                }`}>
+                  {seasonInfo.label} · {seasonInfo.artist}
+                </span>
+                {readingSource === "live" && (
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.7)]" title="AI Live Reading" />
-                </div>
-              )}
+                )}
+              </div>
 
               {readingResult.question ? (
                 <div className="inline-flex items-center gap-3 px-6 py-3 bg-neutral-900/40 rounded-xl border border-neutral-900/60 max-w-2xl text-left mt-2 mx-auto">
-                  <MessageSquare className="w-4 h-4 text-gold-500 flex-shrink-0" />
+                  <MessageSquare className={`w-4 h-4 flex-shrink-0 ${accentPulse}`} />
                   <p className="text-xs text-neutral-300 font-light italic leading-normal">
                     &quot;{readingResult.question}&quot;
                   </p>
@@ -592,7 +661,10 @@ export default function ReadingFlowPage() {
           >
             panorama.garden
           </a>{" "}
-          • Tableau 00–90
+          • Tableau {String(seasonInfo.cardRange[0]).padStart(2, "0")}–{seasonInfo.cardRange[1]}
+          {flowState !== "deckSelect" && (
+            <> · {seasonInfo.artist}</>
+          )}
         </span>
         <span className="text-[8px] uppercase tracking-widest text-neutral-700 font-mono">
           built by{" "}

@@ -1,16 +1,62 @@
 import { samplePanoramas } from "../data/panoramas";
+import { season2Panoramas } from "../data/panoramasS2";
 import { PanoramaTableau } from "../types/panorama";
 import { CardReading, PositionRole, ReadingResult } from "../types/reading";
+
+// Season definitions
+export type DeckSeason = 1 | 2;
+
+export interface SeasonInfo {
+  season: DeckSeason;
+  label: string;
+  artist: string;
+  handle: string;
+  cardRange: [number, number]; // [start, end] inclusive
+  genesisDate: string;
+  panoramas: PanoramaTableau[];
+  accentColor: string; // CSS class prefix
+}
+
+export const SEASONS: Record<DeckSeason, SeasonInfo> = {
+  1: {
+    season: 1,
+    label: "Season 1",
+    artist: "Yigit Duman",
+    handle: "@YigitDuman",
+    cardRange: [0, 90],
+    genesisDate: "2026-04-23T00:00:00Z",
+    panoramas: samplePanoramas,
+    accentColor: "gold",
+  },
+  2: {
+    season: 2,
+    label: "Season 2",
+    artist: "Delta Sauce",
+    handle: "@deltasauce",
+    cardRange: [91, 180],
+    genesisDate: "2026-07-22T00:00:00Z", // Day 91 = April 23 + 90 days
+    panoramas: season2Panoramas,
+    accentColor: "violet",
+  },
+};
+
+export function getSeasonInfo(season: DeckSeason): SeasonInfo {
+  return SEASONS[season];
+}
 
 // Genesis date of the Panorama project: April 23, 2026
 const GENESIS_DATE_STR = "2026-04-23T00:00:00Z";
 
-export function getCdnImageUrl(dayId: number): string {
-  const genesisDate = new Date(GENESIS_DATE_STR);
+export function getCdnImageUrl(dayId: number, season: DeckSeason = 1): string {
+  const info = SEASONS[season];
+  const genesisDate = new Date(info.genesisDate);
+
+  // For Season 1: dayId 0-90 maps directly
+  // For Season 2: dayId 91-180 maps from season 2 genesis (day 0 of S2 = dayId 91)
+  const localId = season === 1 ? dayId : dayId - info.cardRange[0];
   
-  // Shift offset by -1 day for dayId > 0 to align ID with the exact image number
-  // (e.g. ID 6 maps to 2026-04-28, which is the 6th image of the Panorama)
-  const offsetDays = dayId === 0 ? 0 : dayId - 1;
+  // Shift offset by -1 day for localId > 0 to align ID with the exact image number
+  const offsetDays = localId === 0 ? 0 : localId - 1;
   const targetDate = new Date(genesisDate.getTime() + offsetDays * 24 * 60 * 60 * 1000);
   
   const yyyy = targetDate.getUTCFullYear();
@@ -20,25 +66,33 @@ export function getCdnImageUrl(dayId: number): string {
   return `https://cdn.panorama.garden/generated_${yyyy}-${mm}-${dd}.jpg`;
 }
 
-export function getMaxAvailableDayId(): number {
-  const genesisDate = new Date(GENESIS_DATE_STR);
+export function getMaxAvailableDayId(season: DeckSeason = 1): number {
+  const info = SEASONS[season];
+  const genesisDate = new Date(info.genesisDate);
   const today = new Date();
   
-  // Calculate difference in days since genesis
+  // Calculate difference in days since this season's genesis
   const diffTime = Math.max(0, today.getTime() - genesisDate.getTime());
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
   
-  // Cap at 90 as the MVP timeline max
-  return Math.min(90, diffDays);
+  // Cap at 90 days per season
+  const maxLocal = Math.min(90, diffDays);
+
+  // Return absolute day ID
+  return info.cardRange[0] + maxLocal;
 }
 
-export function getSafeDayId(id: number): number {
-  const maxAvailable = getMaxAvailableDayId();
+export function getSafeDayId(id: number, season: DeckSeason = 1): number {
+  const maxAvailable = getMaxAvailableDayId(season);
   if (id <= maxAvailable) {
     return id;
   }
-  // Wrap-around wrap-around for future dates (e.g. Day 89 -> Day 2) to ensure a 200 image exists
-  return id % (maxAvailable + 1);
+  // Wrap-around within this season's range
+  const info = SEASONS[season];
+  const rangeSize = maxAvailable - info.cardRange[0] + 1;
+  if (rangeSize <= 0) return info.cardRange[0];
+  const localId = (id - info.cardRange[0]) % rangeSize;
+  return info.cardRange[0] + localId;
 }
 
 // Convert a dayId to a human-readable date label (e.g. "23 April 2026")
@@ -47,9 +101,11 @@ const ENGLISH_MONTHS = [
   "July", "August", "September", "October", "November", "December"
 ];
 
-export function getCardDateLabel(dayId: number): string {
-  const genesisDate = new Date(GENESIS_DATE_STR);
-  const offsetDays = dayId === 0 ? 0 : dayId - 1;
+export function getCardDateLabel(dayId: number, season: DeckSeason = 1): string {
+  const info = SEASONS[season];
+  const genesisDate = new Date(info.genesisDate);
+  const localId = season === 1 ? dayId : dayId - info.cardRange[0];
+  const offsetDays = localId === 0 ? 0 : localId - 1;
   const targetDate = new Date(genesisDate.getTime() + offsetDays * 24 * 60 * 60 * 1000);
   
   const dd = targetDate.getUTCDate();
@@ -59,9 +115,11 @@ export function getCardDateLabel(dayId: number): string {
   return `${dd} ${mm} ${yyyy}`;
 }
 
-export function getCardDateSlashLabel(dayId: number): string {
-  const genesisDate = new Date(GENESIS_DATE_STR);
-  const offsetDays = dayId === 0 ? 0 : dayId - 1;
+export function getCardDateSlashLabel(dayId: number, season: DeckSeason = 1): string {
+  const info = SEASONS[season];
+  const genesisDate = new Date(info.genesisDate);
+  const localId = season === 1 ? dayId : dayId - info.cardRange[0];
+  const offsetDays = localId === 0 ? 0 : localId - 1;
   const targetDate = new Date(genesisDate.getTime() + offsetDays * 24 * 60 * 60 * 1000);
   
   const dd = String(targetDate.getUTCDate()).padStart(2, "0");
@@ -71,26 +129,28 @@ export function getCardDateSlashLabel(dayId: number): string {
   return `${dd}/${mm}/${yy}`;
 }
 
-// Helper to get a tableau based on selected ID (0-90)
-export function getTableauById(id: number): PanoramaTableau & { dateName: string; dateSlashLabel: string; isPredefined: boolean } {
+// Helper to get a tableau based on selected ID
+export function getTableauById(id: number, season: DeckSeason = 1): PanoramaTableau & { dateName: string; dateSlashLabel: string; isPredefined: boolean } {
+  const info = SEASONS[season];
+  const panoramas = info.panoramas;
+
   // Try to find a template with the exact ID first
-  let template = samplePanoramas.find((p) => p.id === id);
+  let template = panoramas.find((p) => p.id === id);
   const isPredefined = !!template;
 
   if (!template) {
-    // Deterministically map to one of our 6 templates using modulo of original ID
-    const index = id % samplePanoramas.length;
-    template = samplePanoramas[index];
+    // Deterministically map to one of the season's templates using modulo of original ID
+    const index = id % panoramas.length;
+    template = panoramas[index];
   }
 
   // Use the user's selected ID (not the template's ID) for the image URL
-  // so that the displayed image matches the card the user actually selected
-  const safeSelectedId = getSafeDayId(id);
-  const liveImageUrl = getCdnImageUrl(safeSelectedId);
+  const safeSelectedId = getSafeDayId(id, season);
+  const liveImageUrl = getCdnImageUrl(safeSelectedId, season);
 
   // Get the human-readable date name for this card
-  const dateName = getCardDateLabel(safeSelectedId);
-  const dateSlashLabel = getCardDateSlashLabel(safeSelectedId);
+  const dateName = getCardDateLabel(safeSelectedId, season);
+  const dateSlashLabel = getCardDateSlashLabel(safeSelectedId, season);
 
   // Return a cloned version with the selected ID, date name, and live CDN image URL
   return {
@@ -107,7 +167,8 @@ export function getTableauById(id: number): PanoramaTableau & { dateName: string
 // Generate the customized contextual reading
 export function generateReading(
   question: string | null,
-  selectedIds: number[]
+  selectedIds: number[],
+  season: DeckSeason = 1
 ): ReadingResult {
   const isSingle = selectedIds.length === 1;
   if (!isSingle && selectedIds.length !== 3) {
@@ -117,9 +178,9 @@ export function generateReading(
   const cleanQuestion = question && question.trim() !== "" ? question.trim() : null;
 
   if (isSingle) {
-    const singleTableau = getTableauById(selectedIds[0]);
+    const singleTableau = getTableauById(selectedIds[0], season);
     const cards: Partial<Record<PositionRole, CardReading>> = {
-      Single: createCardReading(singleTableau, selectedIds[0], "Single", cleanQuestion),
+      Single: createCardReading(singleTableau, selectedIds[0], "Single", cleanQuestion, season),
     };
 
     const reflections = {
@@ -139,19 +200,19 @@ export function generateReading(
     };
   }
 
-  const pastTableau = getTableauById(selectedIds[0]);
-  const presentTableau = getTableauById(selectedIds[1]);
-  const futureTableau = getTableauById(selectedIds[2]);
+  const pastTableau = getTableauById(selectedIds[0], season);
+  const presentTableau = getTableauById(selectedIds[1], season);
+  const futureTableau = getTableauById(selectedIds[2], season);
 
   // Stage 1 & 2: Positional and Contextual interpretations
   const cards: Partial<Record<PositionRole, CardReading>> = {
-    Past: createCardReading(pastTableau, selectedIds[0], "Past", cleanQuestion),
-    Present: createCardReading(presentTableau, selectedIds[1], "Present", cleanQuestion),
-    Future: createCardReading(futureTableau, selectedIds[2], "Future", cleanQuestion),
+    Past: createCardReading(pastTableau, selectedIds[0], "Past", cleanQuestion, season),
+    Present: createCardReading(presentTableau, selectedIds[1], "Present", cleanQuestion, season),
+    Future: createCardReading(futureTableau, selectedIds[2], "Future", cleanQuestion, season),
   };
 
   // Stage 3: Relationship Analysis
-  const relationshipAnalysis = analyzeRelationships(pastTableau, presentTableau, futureTableau);
+  const relationshipAnalysis = analyzeRelationships(pastTableau, presentTableau, futureTableau, season);
 
   // Stage 4: Synthesis
   const synthesis = generateSynthesis(pastTableau, presentTableau, futureTableau, cleanQuestion);
@@ -174,7 +235,8 @@ function createCardReading(
   tableau: PanoramaTableau,
   selectedId: number,
   role: PositionRole,
-  question: string | null
+  question: string | null,
+  season: DeckSeason = 1
 ): CardReading {
   let contextualInterpretation = "";
   let positionalInterpretation = "";
@@ -213,50 +275,77 @@ function createCardReading(
   };
 }
 
-function getPopulationScore(tableau: PanoramaTableau): number {
+function getPopulationScore(tableau: PanoramaTableau, season: DeckSeason = 1): number {
+  const panoramas = SEASONS[season].panoramas;
   const cleanTitle = tableau.title.replace(/\s*\(Tableau #\d+\)/, "");
-  const template = samplePanoramas.find((p) => p.title === cleanTitle);
+  const template = panoramas.find((p) => p.title === cleanTitle);
   if (!template) return 1;
 
-  switch (template.id) {
-    case 7: return 1;   // The Threshold of Winds
-    case 23: return 6;  // The Silent Assembly
-    case 44: return 0;  // The Sunken Library
-    case 61: return 2;  // The Weavers of Light
-    case 80: return 20; // The Public Revelation
-    case 88: return 1;  // The Solitary Observatory
-    default: return 1;
+  if (season === 1) {
+    switch (template.id) {
+      case 7: return 1;   // The Threshold of Winds
+      case 23: return 6;  // The Silent Assembly
+      case 44: return 0;  // The Sunken Library
+      case 61: return 2;  // The Weavers of Light
+      case 80: return 20; // The Public Revelation
+      case 88: return 1;  // The Solitary Observatory
+      default: return 1;
+    }
+  } else {
+    switch (template.id) {
+      case 97: return 1;   // The Fractured Mirror
+      case 113: return 1;  // The Burning Garden
+      case 134: return 1;  // The Tide Clock
+      case 152: return 3;  // The Hollow Crown
+      case 168: return 8;  // The Signal Fire
+      case 178: return 1;  // The Seed Vault
+      default: return 1;
+    }
   }
 }
 
-function getSpaceType(tableau: PanoramaTableau): "open" | "closed" | "cosmic" {
+function getSpaceType(tableau: PanoramaTableau, season: DeckSeason = 1): "open" | "closed" | "cosmic" {
+  const panoramas = SEASONS[season].panoramas;
   const cleanTitle = tableau.title.replace(/\s*\(Tableau #\d+\)/, "");
-  const template = samplePanoramas.find((p) => p.title === cleanTitle);
+  const template = panoramas.find((p) => p.title === cleanTitle);
   if (!template) return "open";
 
-  switch (template.id) {
-    case 7: return "open";    // Windy cliff
-    case 23: return "closed"; // Misty forest clearing
-    case 44: return "closed"; // Submerged library
-    case 61: return "cosmic"; // High in night sky
-    case 80: return "open";    // City square
-    case 88: return "cosmic"; // Observatory peak / nebula
-    default: return "open";
+  if (season === 1) {
+    switch (template.id) {
+      case 7: return "open";    // Windy cliff
+      case 23: return "closed"; // Misty forest clearing
+      case 44: return "closed"; // Submerged library
+      case 61: return "cosmic"; // High in night sky
+      case 80: return "open";    // City square
+      case 88: return "cosmic"; // Observatory peak / nebula
+      default: return "open";
+    }
+  } else {
+    switch (template.id) {
+      case 97: return "open";    // Black sand desert
+      case 113: return "open";   // Terraced garden
+      case 134: return "cosmic"; // Sea cliff clockwork
+      case 152: return "closed"; // Ice throne room
+      case 168: return "open";   // Mountaintop bonfires
+      case 178: return "closed"; // Underground vault
+      default: return "open";
+    }
   }
 }
 
 function analyzeRelationships(
   past: PanoramaTableau,
   present: PanoramaTableau,
-  future: PanoramaTableau
+  future: PanoramaTableau,
+  season: DeckSeason = 1
 ): string {
-  const popPast = getPopulationScore(past);
-  const popPresent = getPopulationScore(present);
-  const popFuture = getPopulationScore(future);
+  const popPast = getPopulationScore(past, season);
+  const popPresent = getPopulationScore(present, season);
+  const popFuture = getPopulationScore(future, season);
 
-  const spacePast = getSpaceType(past);
-  const spacePresent = getSpaceType(present);
-  const spaceFuture = getSpaceType(future);
+  const spacePast = getSpaceType(past, season);
+  const spacePresent = getSpaceType(present, season);
+  const spaceFuture = getSpaceType(future, season);
 
   let dynamics = [];
 

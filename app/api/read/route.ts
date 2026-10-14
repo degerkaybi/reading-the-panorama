@@ -106,8 +106,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, reason: "INVALID_JSON" });
     }
 
-    const { question, selectedIds } = bodyData;
-    logDebug(`Question: "${question || "None"}" | Selected IDs: ${JSON.stringify(selectedIds)}`);
+    const { question, selectedIds, season: rawSeason } = bodyData;
+    const season = (rawSeason === 2) ? 2 : 1; // Default to season 1
+    logDebug(`Question: "${question || "None"}" | Selected IDs: ${JSON.stringify(selectedIds)} | Season: ${season}`);
 
     // Rate limit check disabled
 
@@ -204,7 +205,7 @@ export async function POST(req: NextRequest) {
     let futureTableau: any = null;
 
     if (isSingle) {
-      singleTableau = getTableauById(selectedIds[0]);
+      singleTableau = getTableauById(selectedIds[0], season);
       const tableauDesc = describeTableau(singleTableau);
 
       prompt = `
@@ -286,9 +287,9 @@ ${
     This card is "${isTurkishRequested ? singleTableau.dateName : translateDateToEnglish(singleTableau.dateName)}" — a unique panorama with its own distinct image. You MUST generate completely unique, customized descriptions, metaphors, and interpretations based on what you actually SEE in the image. Do not reuse any interpretation from any other reading. Vary the emotional focus, the visual focus, and the advice so that the user gets a completely fresh experience.
 `;
     } else {
-      pastTableau = getTableauById(selectedIds[0]);
-      presentTableau = getTableauById(selectedIds[1]);
-      futureTableau = getTableauById(selectedIds[2]);
+      pastTableau = getTableauById(selectedIds[0], season);
+      presentTableau = getTableauById(selectedIds[1], season);
+      futureTableau = getTableauById(selectedIds[2], season);
 
       const pastDesc = describeTableau(pastTableau);
       const presentDesc = describeTableau(presentTableau);

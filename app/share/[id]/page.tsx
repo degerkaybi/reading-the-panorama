@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { ReadingResult, PositionRole, CardReading } from "../../../types/reading";
-import { getTableauById } from "../../../lib/reading-engine";
+import { DeckSeason, getTableauById, SEASONS } from "../../../lib/reading-engine";
 import SharedReadingClient from "./SharedReadingClient";
 
 export const dynamic = "force-dynamic";
@@ -49,10 +49,12 @@ export default async function SharePage({ params }: PageProps) {
     const cards: Partial<Record<PositionRole, CardReading>> = {};
     for (const [role, compCard] of Object.entries(payload.c)) {
       if (compCard) {
-        const tableau = getTableauById((compCard as any).id);
+        const cardId = (compCard as any).id;
+        const season: DeckSeason = cardId >= SEASONS[2].cardRange[0] ? 2 : 1;
+        const tableau = getTableauById(cardId, season);
         cards[role as PositionRole] = {
           tableau,
-          selectedId: (compCard as any).id,
+          selectedId: cardId,
           role: role as PositionRole,
           contextualInterpretation: (compCard as any).ci,
           positionalInterpretation: (compCard as any).pi,
