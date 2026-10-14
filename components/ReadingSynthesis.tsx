@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { ReadingResult } from "../types/reading";
+import { createShareHash } from "../lib/share-payload";
 import { Sparkles, HelpCircle, Compass, ArrowRight, Share2, Check } from "lucide-react";
 
 interface ReadingSynthesisProps {
@@ -23,8 +24,8 @@ export default function ReadingSynthesis({ result, onRestart }: ReadingSynthesis
       }
     }
 
+    const textArea = document.createElement("textarea");
     try {
-      const textArea = document.createElement("textarea");
       textArea.value = text;
       textArea.style.position = "fixed";
       textArea.style.top = "0";
@@ -33,12 +34,13 @@ export default function ReadingSynthesis({ result, onRestart }: ReadingSynthesis
       document.body.appendChild(textArea);
       textArea.focus();
       textArea.select();
-      const successful = document.execCommand("copy");
-      document.body.removeChild(textArea);
-      return successful;
+      return document.execCommand("copy");
     } catch (err) {
       console.error("Fallback copy failed:", err);
       return false;
+    } finally {
+      // The browser or an extension may already have detached the temporary field.
+      textArea.remove();
     }
   };
 
@@ -59,46 +61,9 @@ export default function ReadingSynthesis({ result, onRestart }: ReadingSynthesis
 
     setShareState("loading");
     try {
-      // 1. Extract only the essential dynamic fields to minimize storage size
-      const cardsPayload: Record<string, any> = {};
-      for (const [role, card] of Object.entries(result.cards)) {
-        if (card) {
-          cardsPayload[role] = {
-            id: card.selectedId,
-            ci: card.contextualInterpretation,
-            pi: card.positionalInterpretation,
-          };
-        }
-      }
-
-      const payload = {
-        q: result.question,
-        ra: result.relationshipAnalysis,
-        sy: result.synthesis,
-        ws: result.whatSees,
-        wa: result.whatAsks,
-        in: result.invitation,
-        c: cardsPayload,
-      };
-
-      // 2. Post the payload to /api/share
-      const response = await fetch("/api/share", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to share: Status ${response.status} - ${errorText}`);
-      }
-
-      const data = await response.json();
-      
-      // 3. Form the short URL using the returned ID
-      const url = `${window.location.origin}/share/${data.id}`;
+      // Keep the reading inside the URL fragment so personal content is not sent
+      // to a storage service, server log, or referrer.
+      const url = `${window.location.origin}/share#${createShareHash(result)}`;
       setShareUrl(url);
 
       const copied = await copyToClipboard(url);
@@ -106,9 +71,8 @@ export default function ReadingSynthesis({ result, onRestart }: ReadingSynthesis
         setShareState("copied");
         setTimeout(() => setShareState("idle"), 2000);
       } else {
-        // Still mark as copied because the URL is now displayed on screen
-        setShareState("copied");
-        setTimeout(() => setShareState("idle"), 2000);
+        setShareState("error");
+        setTimeout(() => setShareState("idle"), 3000);
       }
     } catch (error) {
       console.error("Failed to create share link:", error);

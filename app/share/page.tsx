@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import SelfContainedShareClient from "./SelfContainedShareClient";
 
-export default function DeprecatedSharePage() {
-  redirect("/");
+export default function SharedReadingPage() {
+  return <SelfContainedShareClient />;
 }
