@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { ReadingResult } from "../types/reading";
 import { createShareHash } from "../lib/share-payload";
-import { Sparkles, HelpCircle, Compass, ArrowRight, Share2, Check } from "lucide-react";
+import { Sparkles, HelpCircle, Compass, ArrowRight, Share2 } from "lucide-react";
 
 interface ReadingSynthesisProps {
   result: ReadingResult;
@@ -15,32 +15,16 @@ export default function ReadingSynthesis({ result, onRestart }: ReadingSynthesis
   const [shareUrl, setShareUrl] = useState<string | null>(null);
 
   const copyToClipboard = async (text: string): Promise<boolean> => {
-    if (typeof navigator !== "undefined" && navigator.clipboard && navigator.clipboard.writeText) {
-      try {
-        await navigator.clipboard.writeText(text);
-        return true;
-      } catch (err) {
-        console.warn("Navigator clipboard failed, trying fallback...", err);
-      }
+    if (!navigator.clipboard?.writeText) {
+      return false;
     }
 
-    const textArea = document.createElement("textarea");
     try {
-      textArea.value = text;
-      textArea.style.position = "fixed";
-      textArea.style.top = "0";
-      textArea.style.left = "0";
-      textArea.style.opacity = "0";
-      document.body.appendChild(textArea);
-      textArea.focus();
-      textArea.select();
-      return document.execCommand("copy");
+      await navigator.clipboard.writeText(text);
+      return true;
     } catch (err) {
-      console.error("Fallback copy failed:", err);
+      console.warn("Clipboard copy failed:", err);
       return false;
-    } finally {
-      // The browser or an extension may already have detached the temporary field.
-      textArea.remove();
     }
   };
 
@@ -48,14 +32,9 @@ export default function ReadingSynthesis({ result, onRestart }: ReadingSynthesis
     if (shareState === "loading") return;
 
     if (shareUrl) {
+      setShareState("loading");
       const copied = await copyToClipboard(shareUrl);
-      if (copied) {
-        setShareState("copied");
-        setTimeout(() => setShareState("idle"), 2000);
-      } else {
-        setShareState("error");
-        setTimeout(() => setShareState("idle"), 3000);
-      }
+      setShareState(copied ? "copied" : "error");
       return;
     }
 
@@ -67,17 +46,10 @@ export default function ReadingSynthesis({ result, onRestart }: ReadingSynthesis
       setShareUrl(url);
 
       const copied = await copyToClipboard(url);
-      if (copied) {
-        setShareState("copied");
-        setTimeout(() => setShareState("idle"), 2000);
-      } else {
-        setShareState("error");
-        setTimeout(() => setShareState("idle"), 3000);
-      }
+      setShareState(copied ? "copied" : "error");
     } catch (error) {
       console.error("Failed to create share link:", error);
       setShareState("error");
-      setTimeout(() => setShareState("idle"), 3000);
     }
   };
 
@@ -198,25 +170,8 @@ export default function ReadingSynthesis({ result, onRestart }: ReadingSynthesis
                 : "bg-gold-500 hover:bg-gold-400 text-neutral-950 border-gold-500 font-semibold shadow-[0_0_20px_rgba(190,144,46,0.15)]"
             }`}
           >
-            {shareState === "idle" && (
-              <>
-                <Share2 className="w-4 h-4" />
-                Share Reading
-              </>
-            )}
-            {shareState === "loading" && (
-              <>
-                <div className="w-4 h-4 border-2 border-neutral-950 border-t-transparent rounded-full animate-spin" />
-                Generating Link...
-              </>
-            )}
-            {shareState === "copied" && (
-              <>
-                <Check className="w-4 h-4" />
-                Link Copied!
-              </>
-            )}
-            {shareState === "error" && <>Failed to Share</>}
+            <Share2 className="w-4 h-4" />
+            <span>Share Reading</span>
           </button>
 
           <button
@@ -228,23 +183,37 @@ export default function ReadingSynthesis({ result, onRestart }: ReadingSynthesis
           </button>
         </div>
 
-        {shareUrl && (
-          <div className="w-full max-w-lg bg-neutral-900/40 border border-neutral-900/80 p-3 rounded-xl flex items-center justify-between gap-3 text-xs mt-2 animate-fade-in font-mono shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
-            <span className="text-neutral-400 truncate select-all pl-1">{shareUrl}</span>
+        <p role="status" aria-live="polite" translate="no" className="min-h-4 text-[11px] text-neutral-400 font-mono text-center">
+          {shareState === "copied"
+            ? "Link copied to clipboard."
+            : shareState === "error" && shareUrl
+              ? "Link ready. Select and copy it below."
+              : shareState === "error"
+                ? "Could not create a share link. Please try again."
+                : shareState === "loading"
+                  ? "Preparing link..."
+                  : ""}
+        </p>
+
+        <div className={`w-full max-w-lg bg-neutral-900/40 border border-neutral-900/80 p-3 rounded-xl items-center justify-between gap-3 text-xs mt-2 font-mono shadow-[inset_0_1px_0_rgba(255,255,255,0.02)] ${shareUrl ? "flex" : "hidden"}`}>
+            <input
+              aria-label="Share link"
+              readOnly
+              value={shareUrl || ""}
+              onFocus={(event) => event.currentTarget.select()}
+              className="min-w-0 flex-1 bg-transparent text-neutral-400 outline-none"
+            />
             <button
               onClick={async () => {
+                if (!shareUrl) return;
                 const copied = await copyToClipboard(shareUrl);
-                if (copied) {
-                  setShareState("copied");
-                  setTimeout(() => setShareState("idle"), 2000);
-                }
+                setShareState(copied ? "copied" : "error");
               }}
               className="text-gold-400 hover:text-gold-300 font-mono text-[10px] uppercase tracking-wider font-semibold cursor-pointer whitespace-nowrap bg-neutral-950/60 border border-neutral-850 px-3 py-1.5 rounded hover:border-gold-500/30 transition-all duration-300"
             >
               Copy
             </button>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );
