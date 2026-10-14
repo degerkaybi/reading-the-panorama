@@ -1,13 +1,39 @@
 "use client";
 
 import React, { useState } from "react";
-import { ReadingResult } from "../types/reading";
-import { createShareHash } from "../lib/share-payload";
+import { ReadingResult, PositionRole } from "../types/reading";
 import { Sparkles, HelpCircle, Compass, ArrowRight, Share2 } from "lucide-react";
 
 interface ReadingSynthesisProps {
   result: ReadingResult;
   onRestart: () => void;
+}
+
+/** Build the compact payload expected by /api/share and /share/[id] */
+function buildCompactPayload(result: ReadingResult) {
+  const POSITION_ROLES: PositionRole[] = ["Single", "Past", "Present", "Future"];
+  const cards: Record<string, { id: number; ci: string; pi: string }> = {};
+
+  for (const role of POSITION_ROLES) {
+    const card = result.cards[role];
+    if (card) {
+      cards[role] = {
+        id: card.selectedId,
+        ci: card.contextualInterpretation,
+        pi: card.positionalInterpretation,
+      };
+    }
+  }
+
+  return {
+    q: result.question,
+    ra: result.relationshipAnalysis,
+    sy: result.synthesis,
+    ws: result.whatSees,
+    wa: result.whatAsks,
+    in: result.invitation,
+    c: cards,
+  };
 }
 
 export default function ReadingSynthesis({ result, onRestart }: ReadingSynthesisProps) {
@@ -31,6 +57,7 @@ export default function ReadingSynthesis({ result, onRestart }: ReadingSynthesis
   const handleShare = async () => {
     if (shareState === "loading") return;
 
+    // If we already generated a URL, just re-copy it
     if (shareUrl) {
       setShareState("loading");
       const copied = await copyToClipboard(shareUrl);
@@ -40,16 +67,43 @@ export default function ReadingSynthesis({ result, onRestart }: ReadingSynthesis
 
     setShareState("loading");
     try {
-      // Keep the reading inside the URL fragment so personal content is not sent
-      // to a storage service, server log, or referrer.
+      // Try saving to Upstash Redis via /api/share → returns a short 8-char ID
+      const response = await fetch("/api/share", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(buildCompactPayload(result)),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.id) {
+          const url = `${window.location.origin}/share/${data.id}`;
+          setShareUrl(url);
+          const copied = await copyToClipboard(url);
+          setShareState(copied ? "copied" : "error");
+          return;
+        }
+      }
+
+      // Server-side storage failed — fall back to client-side compressed URL
+      console.warn("Server share failed, falling back to client-side URL");
+      const { createShareHash } = await import("../lib/share-payload");
       const url = `${window.location.origin}/share#${createShareHash(result)}`;
       setShareUrl(url);
-
       const copied = await copyToClipboard(url);
       setShareState(copied ? "copied" : "error");
     } catch (error) {
       console.error("Failed to create share link:", error);
-      setShareState("error");
+      // Last resort fallback — try client-side even if fetch threw
+      try {
+        const { createShareHash } = await import("../lib/share-payload");
+        const url = `${window.location.origin}/share#${createShareHash(result)}`;
+        setShareUrl(url);
+        const copied = await copyToClipboard(url);
+        setShareState(copied ? "copied" : "error");
+      } catch {
+        setShareState("error");
+      }
     }
   };
 
