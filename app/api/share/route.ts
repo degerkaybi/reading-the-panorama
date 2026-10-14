@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import crypto from "crypto";
 
 export async function POST(request: Request) {
   try {
@@ -20,16 +19,25 @@ export async function POST(request: Request) {
     const baseUrl = kvUrl.endsWith("/") ? kvUrl.slice(0, -1) : kvUrl;
 
     // Generate an 8-character unique alphanumeric ID
-    const id = crypto.randomUUID().replace(/-/g, "").slice(0, 8);
+    const bytes = new Uint8Array(6);
+    crypto.getRandomValues(bytes);
+    const id = Array.from(bytes, (b) => b.toString(36).padStart(2, "0")).join("").slice(0, 8);
 
-    // Call Upstash REST API using POST command array syntax
-    const response = await fetch(baseUrl, {
+    const key = `readings:${id}`;
+    const value = JSON.stringify(body);
+    // 30-day expiration to prevent unbounded data growth
+    const exSeconds = 30 * 24 * 60 * 60;
+
+    // Use Upstash REST API URL-based command format:
+    // POST /{command}/{arg1}/{arg2}/...
+    const encodedValue = encodeURIComponent(value);
+    const url = `${baseUrl}/set/${key}/${encodedValue}/ex/${exSeconds}`;
+
+    const response = await fetch(url, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${kvToken}`,
-        "Content-Type": "application/json",
       },
-      body: JSON.stringify(["SET", `readings:${id}`, JSON.stringify(body)]),
     });
 
     if (!response.ok) {
@@ -48,3 +56,4 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message || "Failed to save reading" }, { status: 500 });
   }
 }
+
